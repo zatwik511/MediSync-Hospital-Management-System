@@ -26,7 +26,7 @@ export function CostSummary({ patientId }: CostSummaryProps) {
         <div className="h-8 bg-blue-200 rounded animate-pulse"></div>
       ) : (
         <p className="text-4xl font-bold text-blue-600">
-          £{(totalCost || 0).toFixed(2)}
+          £{Number(totalCost || 0).toFixed(2)}
         </p>
       )}
     </div>

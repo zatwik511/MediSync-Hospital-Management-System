@@ -84,7 +84,7 @@ export function PatientList() {
                     )}
                   </td>
                   <td className="py-3 px-4 text-right font-semibold">
-                    £{patient.totalCost.toFixed(2)}
+                    £{Number(patient.totalCost).toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="flex justify-center gap-2">

@@ -1,10 +1,9 @@
+import { pool } from '../database/db';
 import { MedicalImage, UploadImageDTO } from '../models/types';
-import { supabase } from '../database/supabaseClient';
 
 export class ImageService {
-  private tableName = 'medical_images';
 
-  // ✅ Helper function to transform database rows to MedicalImage format
+  // Helper function to transform database rows to MedicalImage format
   private transformToMedicalImage(row: any): MedicalImage {
     return {
       id: row.id,
@@ -18,77 +17,56 @@ export class ImageService {
   }
 
   async uploadImage(data: UploadImageDTO, uploadedBy: string): Promise<MedicalImage> {
-    const newImage = {
-      patient_id: data.patientID,
-      uploaded_at: new Date().toISOString(),
-      uploaded_by: uploadedBy,
-      type: data.imageType,
-      disease_classification: data.diseaseType || null,
-      image_url: `/uploads/${data.fileName}`,
-    };
+    const result = await pool.query(
+      `INSERT INTO medical_images (patient_id, uploaded_at, uploaded_by, type, disease_classification, image_url)
+       VALUES ($1, NOW(), $2, $3, $4, $5)
+       RETURNING *`,
+      [data.patientID, uploadedBy, data.imageType, data.diseaseType || null, `/uploads/${data.fileName}`]
+    );
 
-    const { data: insertedData, error } = await supabase
-      .from(this.tableName)
-      .insert([newImage])
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to upload image: ${error.message}`);
-    
-    // ✅ Transform before returning
-    return this.transformToMedicalImage(insertedData);
+    return this.transformToMedicalImage(result.rows[0]);
   }
 
   async getImagesByPatient(patientID: string): Promise<MedicalImage[]> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select()
-      .eq('patient_id', patientID)
-      .order('uploaded_at', { ascending: false });
+    const result = await pool.query(
+      `SELECT * FROM medical_images WHERE patient_id = $1 ORDER BY uploaded_at DESC`,
+      [patientID]
+    );
 
-    if (error) throw new Error(`Failed to fetch images: ${error.message}`);
-    
-    // ✅ Transform all rows before returning
-    return (data || []).map(row => this.transformToMedicalImage(row));
+    return result.rows.map(row => this.transformToMedicalImage(row));
   }
 
   async classifyImage(imageID: string, imageType: string, diseaseType: string): Promise<MedicalImage | null> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .update({
-        type: imageType,
-        disease_classification: diseaseType
-      })
-      .eq('id', imageID)
-      .select()
-      .single();
+    const result = await pool.query(
+      `UPDATE medical_images SET type = $1, disease_classification = $2 WHERE id = $3 RETURNING *`,
+      [imageType, diseaseType, imageID]
+    );
 
-    if (error) throw new Error(`Failed to classify image: ${error.message}`);
-    
-    // ✅ Transform before returning
-    return data ? this.transformToMedicalImage(data) : null;
+    return result.rows[0] ? this.transformToMedicalImage(result.rows[0]) : null;
   }
 
   async getImageByID(imageID: string): Promise<MedicalImage | null> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select()
-      .eq('id', imageID)
-      .single();
+    const result = await pool.query(
+      `SELECT * FROM medical_images WHERE id = $1`,
+      [imageID]
+    );
 
-    if (error && error.code !== 'PGRST116') throw new Error(`Failed to fetch image: ${error.message}`);
-    
-    // ✅ Transform before returning
-    return data ? this.transformToMedicalImage(data) : null;
+    return result.rows[0] ? this.transformToMedicalImage(result.rows[0]) : null;
   }
 
   async deleteImage(imageID: string): Promise<void> {
-    const { error } = await supabase
-      .from(this.tableName)
-      .delete()
-      .eq('id', imageID);
+    await pool.query(
+      `DELETE FROM medical_images WHERE id = $1`,
+      [imageID]
+    );
+  }
 
-    if (error) throw new Error(`Failed to delete image: ${error.message}`);
+  // NEW: Count total medical images across all patients
+  async getTotalImageCount(): Promise<number> {
+    const result = await pool.query(
+      `SELECT COUNT(*) FROM medical_images`
+    );
+    return parseInt(result.rows[0].count, 10);
   }
 }
 

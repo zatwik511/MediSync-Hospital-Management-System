@@ -1,6 +1,6 @@
 // backend/src/routes/authRoutes.ts
 import { Router, Request, Response } from 'express';
-import { supabase } from '../database/supabaseClient';
+import { pool } from '../database/db';
 
 const router = Router();
 
@@ -9,20 +9,20 @@ router.post('/login', async (req: Request, res: Response) => {
   const { name, id } = req.body;
 
   try {
-    let query = supabase.from('staff').select('*');
-    
+    let result;
+
     // Login by ID or Name
     if (id) {
-      query = query.eq('id', id);
+      result = await pool.query(`SELECT * FROM staff WHERE id = $1`, [id]);
     } else if (name) {
-      query = query.eq('name', name);
+      result = await pool.query(`SELECT * FROM staff WHERE name = $1`, [name]);
     } else {
       return res.status(400).json({ success: false, error: 'Name or ID required' });
     }
 
-    const { data, error } = await query.single();
+    const data = result.rows[0];
 
-    if (error || !data) {
+    if (!data) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 

@@ -1,13 +1,18 @@
 import { PatientForm } from '../components/PatientForm';
 import { PatientList } from '../components/PatientList';
 import { usePatients } from '../hooks/usePatients';
+import { useTotalImageCount } from '../hooks/useImages';
 import { Users, FileText, Image, Wallet } from 'lucide-react';
 
 export function Dashboard() {
   const { data: patients } = usePatients();
+  const { data: totalImages } = useTotalImageCount();
 
   const totalPatients = patients?.length || 0;
-  const totalCost = patients?.reduce((sum, p) => sum + p.totalCost, 0) || 0;
+  const totalCost = patients?.reduce((sum, p) => sum + Number(p.totalCost), 0) || 0;
+
+  // Reports = total number of patients who have a diagnosis set
+  const totalReports = patients?.filter(p => p.diagnosis && p.diagnosis.trim() !== '').length || 0;
 
   const stats = [
     {
@@ -24,13 +29,13 @@ export function Dashboard() {
     },
     {
       label: 'Reports Generated',
-      value: '0',
+      value: totalReports,
       icon: FileText,
       color: 'bg-purple-100 text-purple-600',
     },
     {
       label: 'Medical Images',
-      value: '0',
+      value: totalImages ?? 0,
       icon: Image,
       color: 'bg-orange-100 text-orange-600',
     },

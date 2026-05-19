@@ -18,6 +18,16 @@ export function usePatientImages(patientId: string) {
   });
 }
 
+// NEW: Get total image count across all patients
+export function useTotalImageCount() {
+  return useQuery({
+    queryKey: ['images-count'],
+    queryFn: () => imageApi.getTotalImageCount(),
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 5,
+  });
+}
+
 export function useUploadImage() {
   const queryClient = useQueryClient();
 
@@ -26,6 +36,10 @@ export function useUploadImage() {
     onSuccess: (newImage) => {
       queryClient.invalidateQueries({
         queryKey: IMAGES_QUERY_KEY(newImage.patientID),
+      });
+      // Also invalidate the total count so the dashboard updates
+      queryClient.invalidateQueries({
+        queryKey: ['images-count'],
       });
     },
   });
@@ -58,9 +72,12 @@ export function useDeleteImage() {
   return useMutation({
     mutationFn: (imageId: string) => imageApi.deleteImage(imageId),
     onSuccess: () => {
-      // Note: you may want to invalidate all images queries
       queryClient.invalidateQueries({
         queryKey: ['images'],
+      });
+      // Also invalidate the total count so the dashboard updates
+      queryClient.invalidateQueries({
+        queryKey: ['images-count'],
       });
     },
   });

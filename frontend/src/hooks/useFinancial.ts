@@ -41,6 +41,13 @@ export function useRecordTask() {
       queryClient.invalidateQueries({
         queryKey: REPORT_QUERY_KEY(newTask.patientID),
       });
+      // Force immediate refetch so totalCost updates on screen without refresh
+      queryClient.refetchQueries({
+        queryKey: ['patient', newTask.patientID],
+      });
+      queryClient.refetchQueries({
+        queryKey: ['patients'],
+      });
     },
   });
 }

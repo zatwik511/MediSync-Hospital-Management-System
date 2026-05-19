@@ -15,10 +15,17 @@ router.post('/task', async (req: Request, res: Response) => {
       });
     }
 
+    if (isNaN(Number(cost)) || Number(cost) < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cost must be a positive number',
+      });
+    }
+
     const task = await financialService.recordTask({
       patientID,
       description,
-      cost,
+      cost: Number(cost),
     });
 
     res.status(201).json({
@@ -34,14 +41,15 @@ router.post('/task', async (req: Request, res: Response) => {
 });
 
 // GET /api/financial/cost/:patientID - Get patient's total cost
+// Fixed: was returning { patientID, totalCost } object but frontend expects a plain number
 router.get('/cost/:patientID', async (req: Request, res: Response) => {
   try {
-    const patientID = req.params.patientID as string;   // <- cast to string
+    const patientID = req.params.patientID as string;
     const totalCost = await financialService.calculateTotalCost(patientID);
 
     res.json({
       success: true,
-      data: { patientID, totalCost },
+      data: totalCost,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -54,7 +62,7 @@ router.get('/cost/:patientID', async (req: Request, res: Response) => {
 // GET /api/financial/report/:patientID - Get cost report
 router.get('/report/:patientID', async (req: Request, res: Response) => {
   try {
-    const patientID = req.params.patientID as string;   // <- cast to string
+    const patientID = req.params.patientID as string;
     const report = await financialService.generateCostReport(patientID);
 
     res.json({

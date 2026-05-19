@@ -1,41 +1,26 @@
+import { pool } from '../database/db';
 import { Staff, CreateStaffDTO } from '../models/types';
-import { supabase } from '../database/supabaseClient';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://jfywooouzwtlgztjnzlw.supabase.co';  
-const supabaseKey = 'sb_publishable_Cp9gNbNgzfc2JRbznRW1Sw_rFrkO2Im';    
 
 export class StaffService {
-  private tableName = 'staff';
 
   async createStaff(data: CreateStaffDTO): Promise<Staff> {
-    const newStaff = {
-      name: data.name,
-      address: data.address,
-      role: data.role,
-      specialization: data.specialization,
-      created_at: new Date().toISOString(),
-    };
+    const result = await pool.query(
+      `INSERT INTO staff (name, address, role, specialization, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING *`,
+      [data.name, data.address, data.role, data.specialization]
+    );
 
-    const { data: insertedData, error } = await supabase
-      .from(this.tableName)
-      .insert([newStaff])
-      .select()
-      .single();
-
-    if (error) throw new Error(`Failed to create staff: ${error.message}`);
-    return insertedData as Staff;
+    return result.rows[0] as Staff;
   }
 
   async getStaff(staffID: string): Promise<Staff | null> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select()
-      .eq('id', staffID)
-      .single();
+    const result = await pool.query(
+      `SELECT * FROM staff WHERE id = $1`,
+      [staffID]
+    );
 
-    if (error && error.code !== 'PGRST116') throw new Error(`Failed to fetch staff: ${error.message}`);
-    return data as Staff | null;
+    return result.rows[0] || null;
   }
 
   async authenticateStaff(staffID: string): Promise<Staff | null> {
@@ -43,22 +28,18 @@ export class StaffService {
   }
 
   async listStaff(): Promise<Staff[]> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select()
-      .order('created_at', { ascending: false });
+    const result = await pool.query(
+      `SELECT * FROM staff ORDER BY created_at DESC`
+    );
 
-    if (error) throw new Error(`Failed to fetch staff list: ${error.message}`);
-    return data as Staff[];
+    return result.rows as Staff[];
   }
 
   async deleteStaff(staffID: string): Promise<void> {
-    const { error } = await supabase
-      .from(this.tableName)
-      .delete()
-      .eq('id', staffID);
-
-    if (error) throw new Error(`Failed to delete staff: ${error.message}`);
+    await pool.query(
+      `DELETE FROM staff WHERE id = $1`,
+      [staffID]
+    );
   }
 }
 

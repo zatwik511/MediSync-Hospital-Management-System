@@ -1,90 +1,58 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://jfywooouzwtlgztjnzlw.supabase.co';  
-const supabaseKey = 'sb_publishable_Cp9gNbNgzfc2JRbznRW1Sw_rFrkO2Im';                
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { pool } from '../database/db';
 import { Patient, CreatePatientDTO } from '../models/types';
 
-
 export class PatientService {
-  private tableName = 'patients';
 
   // METHOD 1: Create a new patient
-async createPatient(data: CreatePatientDTO): Promise<Patient> {
-  const { name, address, conditions } = data;
-  
-  const newPatient = {
-    name,
-    address,
-    conditions: conditions || [],  
-    diagnosis: '',
-    totalCost: 0,
-    medicalHistory: [],  
-    createdAt: new Date().toISOString(),  
-  };
+  async createPatient(data: CreatePatientDTO): Promise<Patient> {
+    const { name, address, conditions } = data;
 
-  const { data: insertedData, error } = await supabase
-    .from(this.tableName)
-    .insert([newPatient])
-    .select()
-    .single(); 
+    const result = await pool.query(
+      `INSERT INTO patients (name, address, conditions, diagnosis, "totalCost", "medicalHistory", "createdAt")
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       RETURNING *`,
+      [name, address, conditions || [], '', 0, []]
+    );
 
-  if (error) {
-    console.error('Supabase error:', error);  
-    throw new Error(`Failed to create patient: ${error.message}`);
+    return result.rows[0] as Patient;
   }
-
-  return insertedData as Patient;
-}
-
 
   // METHOD 2: Get a patient by their ID
   async getPatient(patientID: string): Promise<Patient | null> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select()
-      .eq('id', patientID)
-      .single();
+    const result = await pool.query(
+      `SELECT * FROM patients WHERE id = $1`,
+      [patientID]
+    );
 
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to fetch patient: ${error.message}`);
-    }
-    return data as Patient | null;
+    return result.rows[0] || null;
   }
 
   // METHOD 3: Get ALL patients
   async listPatients(): Promise<Patient[]> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select()
-      .order('createdAt', { ascending: false });
+    const result = await pool.query(
+      `SELECT * FROM patients ORDER BY "createdAt" DESC`
+    );
 
-    if (error) throw new Error(`Failed to fetch patients: ${error.message}`);
-    return data as Patient[];
+    return result.rows as Patient[];
   }
 
   // METHOD 4: Delete a patient
   async deletePatient(patientID: string): Promise<void> {
-    const { error } = await supabase
-      .from(this.tableName)
-      .delete()
-      .eq('id', patientID);
-
-    if (error) throw new Error(`Failed to delete patient: ${error.message}`);
+    await pool.query(
+      `DELETE FROM patients WHERE id = $1`,
+      [patientID]
+    );
   }
 
   // METHOD 5: Update diagnosis
   async updateDiagnosis(patientID: string, diagnosis: string): Promise<Patient> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .update({ diagnosis })
-      .eq('id', patientID)
-      .select()
-      .single();
+    const result = await pool.query(
+      `UPDATE patients SET diagnosis = $1 WHERE id = $2 RETURNING *`,
+      [diagnosis, patientID]
+    );
 
-    if (error) throw new Error(`Failed to update diagnosis: ${error.message}`);
-    return data as Patient;
+    if (!result.rows[0]) throw new Error('Patient not found');
+    return result.rows[0] as Patient;
   }
 
   // METHOD 6: Get total cost for a patient
@@ -95,22 +63,19 @@ async createPatient(data: CreatePatientDTO): Promise<Patient> {
 
   // METHOD 7: Update total cost (called by FinancialService)
   async updateTotalCost(patientID: string, newTotal: number): Promise<void> {
-    const { error } = await supabase
-      .from(this.tableName)
-      .update({ totalCost: newTotal })
-      .eq('id', patientID);
-
-    if (error) throw new Error(`Failed to update total cost: ${error.message}`);
+    await pool.query(
+      `UPDATE patients SET "totalCost" = $1 WHERE id = $2`,
+      [newTotal, patientID]
+    );
   }
 
   // METHOD 8: Count total patients
   async getTotalPatientCount(): Promise<number> {
-    const { count, error } = await supabase
-      .from(this.tableName)
-      .select('*', { count: 'exact', head: true });
+    const result = await pool.query(
+      `SELECT COUNT(*) FROM patients`
+    );
 
-    if (error) throw new Error(`Failed to count patients: ${error.message}`);
-    return count || 0;
+    return parseInt(result.rows[0].count, 10);
   }
 }
 

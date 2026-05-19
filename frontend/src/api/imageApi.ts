@@ -61,4 +61,13 @@ export const imageApi = {
       throw new Error(response.data.error || 'Failed to delete image');
     }
   },
+
+  // NEW: Get total image count across all patients
+  async getTotalImageCount(): Promise<number> {
+    const response = await apiClient.get<APIResponse<number>>('/images/count');
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch image count');
+    }
+    return response.data.data || 0;
+  },
 };

@@ -79,14 +79,14 @@ export function Reports() {
                             >
                               <span>{task.description}</span>
                               <span className="font-medium">
-                                £{task.cost.toFixed(2)}
+                                £{Number(task.cost).toFixed(2)}
                               </span>
                             </div>
                           ))}
                           <div className="flex justify-between py-3 font-bold text-lg">
                             <span>Total Cost</span>
                             <span className="text-primary-500">
-                              £{history.totalCost.toFixed(2)}
+                              £{Number(history.totalCost).toFixed(2)}
                             </span>
                           </div>
                         </>
