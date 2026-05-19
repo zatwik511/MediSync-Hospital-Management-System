@@ -15,6 +15,10 @@ frontend/dist/
 backend/dist/
 frontend/build/
 
+# Compiled JavaScript (TypeScript source is enough)
+backend/src/**/*.js
+backend/src/**/*.js.map
+
 # Logs
 *.log
 npm-debug.log*
