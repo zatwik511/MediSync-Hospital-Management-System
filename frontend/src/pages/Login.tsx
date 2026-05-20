@@ -23,11 +23,19 @@ export function Login() {
       });
 
       if (response.data.success) {
-        const { id, name, role, staff_code } = response.data.data;
+        const { id, name, role, staff_code, last_login } = response.data.data;
         localStorage.setItem('staffId', id);
         localStorage.setItem('staffName', name);
         localStorage.setItem('staffRole', role);
         localStorage.setItem('staffCode', staff_code);
+        // Store previous login time for dashboard display
+        if (last_login) {
+          localStorage.setItem('lastLogin', last_login);
+        } else {
+          localStorage.removeItem('lastLogin');
+        }
+        // Initialise activity clock so the 30-min timer starts from now
+        localStorage.setItem('lastActivity', String(Date.now()));
         navigate('/');
       }
     } catch (err: any) {

@@ -18,6 +18,7 @@ export interface Staff extends User {
   specialization: string;
   certifications: string[];
   staff_code?: string;
+  last_seen?: string;
 }
 
 // Image Models

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStaff, useCreateStaff, useDeleteStaff, useResetPin } from '../hooks/useStaff';
 import { useAuth } from '../hooks/useAuth';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { formatRelativeTime } from '../utils/time';
 import { Trash2, Key } from 'lucide-react';
 
 export function StaffManagement() {
@@ -164,6 +165,12 @@ export function StaffManagement() {
                               {member.specialization}
                             </p>
                           )}
+                          <p className="text-xs text-gray-400 mt-1">
+                            Last seen:{' '}
+                            {member.last_seen
+                              ? formatRelativeTime(member.last_seen)
+                              : 'Never logged in'}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

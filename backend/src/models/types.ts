@@ -23,6 +23,7 @@ export interface Staff extends User {
   certifications: string[];
   staff_code: string;
   pin?: string;
+  last_seen?: Date;
 }
 
 // Medical Image Model

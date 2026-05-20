@@ -22,6 +22,7 @@ import { AuditLog } from './pages/AuditLog';
 
 // Auth
 import { canAccess } from './hooks/useAuth';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 
 interface ProtectedRouteProps {
   children: React.ReactElement;
@@ -62,6 +63,7 @@ interface LayoutProps {
 }
 
 function ProtectedLayout({ children }: LayoutProps) {
+  useSessionTimeout();
   return (
     <>
       <Navigation />

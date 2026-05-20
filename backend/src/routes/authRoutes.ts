@@ -21,6 +21,9 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Invalid staff code or PIN' });
     }
 
+    // Record previous login time, then stamp last_seen = NOW()
+    const lastLogin = await staffService.touchLastSeen(staff.id);
+
     await auditService.logAction({
       staffId: staff.id,
       staffName: staff.name,
@@ -37,6 +40,7 @@ router.post('/login', async (req: Request, res: Response) => {
         name: staff.name,
         role: staff.role,
         staff_code: staff.staff_code,
+        last_login: lastLogin ?? null,
       },
     });
   } catch (err: any) {

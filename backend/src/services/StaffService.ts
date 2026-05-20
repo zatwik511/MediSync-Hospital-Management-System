@@ -29,7 +29,7 @@ export class StaffService {
     const result = await pool.query(
       `INSERT INTO staff (name, address, role, specialization, staff_code, pin, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-       RETURNING id, name, address, role, specialization, staff_code, created_at`,
+       RETURNING id, name, address, role, specialization, staff_code, last_seen, created_at`,
       [data.name, data.address, data.role, data.specialization, staffCode, defaultPinHash]
     );
     const staff = result.rows[0] as Staff;
@@ -45,10 +45,17 @@ export class StaffService {
 
   async getStaff(staffID: string): Promise<Staff | null> {
     const result = await pool.query(
-      `SELECT id, name, address, role, specialization, staff_code, created_at FROM staff WHERE id = $1`,
+      `SELECT id, name, address, role, specialization, staff_code, last_seen, created_at FROM staff WHERE id = $1`,
       [staffID]
     );
     return result.rows[0] || null;
+  }
+
+  // Sets last_seen to NOW() and returns the previous value (for "last login" display)
+  async touchLastSeen(staffId: string): Promise<Date | null> {
+    const prev = await pool.query(`SELECT last_seen FROM staff WHERE id = $1`, [staffId]);
+    await pool.query(`UPDATE staff SET last_seen = NOW() WHERE id = $1`, [staffId]);
+    return prev.rows[0]?.last_seen ?? null;
   }
 
   async verifyLogin(staffCode: string, pin: string): Promise<Staff | null> {
@@ -83,7 +90,7 @@ export class StaffService {
 
   async listStaff(staffId = ''): Promise<Staff[]> {
     const result = await pool.query(
-      `SELECT id, name, address, role, specialization, staff_code, created_at FROM staff ORDER BY created_at DESC`
+      `SELECT id, name, address, role, specialization, staff_code, last_seen, created_at FROM staff ORDER BY created_at DESC`
     );
     if (staffId) {
       await auditService.logAction({
