@@ -5,7 +5,7 @@ import { apiClient } from '../api/client';
 import { LoadingSpinnerInline } from '../components/LoadingSpinner';
 
 export function Login() {
-  const [credential, setCredential] = useState(''); // Can be Name or ID
+  const [credential, setCredential] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,18 +16,19 @@ export function Login() {
     setLoading(true);
 
     try {
-      // Call the NEW public auth route
       const response = await apiClient.post('/auth/login', {
-        // Simple check: if it looks like a UUID, treat as ID, else Name
         id: credential.includes('-') ? credential : undefined,
-        name: !credential.includes('-') ? credential : undefined
+        name: !credential.includes('-') ? credential : undefined,
       });
 
       if (response.data.success) {
-        // 1. Save Staff ID to LocalStorage
-        localStorage.setItem('staffId', response.data.data.id);
-        
-        // 2. Redirect to Dashboard
+        const { id, name, role } = response.data.data;
+
+        // Save all staff info to localStorage
+        localStorage.setItem('staffId', id);
+        localStorage.setItem('staffName', name);
+        localStorage.setItem('staffRole', role);
+
         navigate('/');
       }
     } catch (err: any) {
@@ -61,7 +62,7 @@ export function Login() {
               value={credential}
               onChange={(e) => setCredential(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              placeholder="e.g., Admin User"
+              placeholder="e.g., Admin User or staff UUID"
               required
             />
           </div>
@@ -74,6 +75,14 @@ export function Login() {
             {loading ? <LoadingSpinnerInline /> : 'Sign In'}
           </button>
         </form>
+
+        {/* Role hint for testing */}
+        <div className="mt-6 p-3 bg-gray-50 rounded-md text-xs text-gray-500 space-y-1">
+          <p className="font-medium text-gray-600 mb-2">Test accounts (use name or ID):</p>
+          <p>🔴 <strong>Admin User</strong> — full access</p>
+          <p>🔵 <strong>Dr. Sarah Chen</strong> — doctor access</p>
+          <p>🟢 <strong>Emma Clarke</strong> — receptionist access</p>
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,16 @@ import type {
   APIResponse,
 } from '../types';
 
+export interface AppointmentAnalytics {
+  totalAppointments: number;
+  fulfilmentRate: number;
+  cancellationRate: number;
+  byStatus: { label: string; count: number }[];
+  byType: { label: string; count: number }[];
+  byDoctor: { name: string; specialty: string; count: number }[];
+  monthly: { month: string; count: number }[];
+}
+
 export const reportApi = {
   // Generate patient history report
   async generatePatientHistory(patientId: string): Promise<PatientHistory> {
@@ -23,9 +33,18 @@ export const reportApi = {
       `/reports/diagnostic/${patientId}`
     );
     if (!response.data.success) {
-      throw new Error(
-        response.data.error || 'Failed to generate diagnostic report'
-      );
+      throw new Error(response.data.error || 'Failed to generate diagnostic report');
+    }
+    return response.data.data!;
+  },
+
+  // Get appointment analytics
+  async getAppointmentAnalytics(): Promise<AppointmentAnalytics> {
+    const response = await apiClient.get<APIResponse<AppointmentAnalytics>>(
+      '/reports/appointment-analytics'
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch analytics');
     }
     return response.data.data!;
   },

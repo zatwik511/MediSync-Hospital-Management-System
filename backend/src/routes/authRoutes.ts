@@ -11,7 +11,6 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     let result;
 
-    // Login by ID or Name
     if (id) {
       result = await pool.query(`SELECT * FROM staff WHERE id = $1`, [id]);
     } else if (name) {
@@ -26,14 +25,14 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
-    // Success! Return the staff details
+    // Return id, name AND role so frontend can store all three
     return res.json({
       success: true,
       data: {
         id: data.id,
         name: data.name,
-        role: data.role
-      }
+        role: data.role,
+      },
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

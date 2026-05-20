@@ -3,7 +3,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate
+  Navigate,
 } from 'react-router-dom';
 
 // Components
@@ -12,27 +12,50 @@ import { Navigation } from './components/Navigation';
 // Pages
 import { Dashboard } from './pages/Dashboard';
 import { PatientManagement } from './pages/PatientManagement';
-import { PatientDetails } from './pages/PatientDetails'; // ✅ NEW: Patient Details Page
+import { PatientDetails } from './pages/PatientDetails';
 import { ImageManagement } from './pages/ImageManagement';
 import { StaffManagement } from './pages/StaffManagement';
 import { Reports } from './pages/Reports';
 import { Login } from './pages/Login';
+import { Appointments } from './pages/Appointments';
 
-// Props type for ProtectedRoute
+// Auth
+import { canAccess } from './hooks/useAuth';
+
 interface ProtectedRouteProps {
   children: React.ReactElement;
+  module?: string;
 }
 
-// Protected Route Wrapper
-function ProtectedRoute({ children }: ProtectedRouteProps) {
+// Protects route by login AND optionally by role
+function ProtectedRoute({ children, module }: ProtectedRouteProps) {
   const staffId = localStorage.getItem('staffId');
+  const role = localStorage.getItem('staffRole') || '';
+
   if (!staffId) {
     return <Navigate to="/login" replace />;
   }
+
+  if (module && !canAccess(role, module)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8 bg-white rounded-lg shadow-md max-w-sm">
+          <p className="text-4xl mb-4">🚫</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-500 text-sm">
+            Your role ({role}) does not have permission to view this page.
+          </p>
+          <a href="/" className="mt-4 inline-block text-blue-600 hover:underline text-sm">
+            Go to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return children;
 }
 
-// Layout with Navigation
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -46,7 +69,6 @@ function ProtectedLayout({ children }: LayoutProps) {
   );
 }
 
-// QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -61,82 +83,80 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          {/* ✅ PUBLIC: Login Page */}
+          {/* PUBLIC */}
           <Route path="/login" element={<Login />} />
 
-          {/* ✅ PROTECTED: Dashboard */}
+          {/* PROTECTED — Dashboard */}
           <Route
             path="/"
             element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <Dashboard />
-                </ProtectedLayout>
+              <ProtectedRoute module="dashboard">
+                <ProtectedLayout><Dashboard /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* ✅ PROTECTED: Patient Management */}
+          {/* PROTECTED — Patients */}
           <Route
             path="/patients"
             element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <PatientManagement />
-                </ProtectedLayout>
+              <ProtectedRoute module="patients">
+                <ProtectedLayout><PatientManagement /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* ✅ PROTECTED: Patient Details (NEW) */}
+          {/* PROTECTED — Patient Details */}
           <Route
             path="/patients/:patientId"
             element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <PatientDetails />
-                </ProtectedLayout>
+              <ProtectedRoute module="patients">
+                <ProtectedLayout><PatientDetails /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* ✅ PROTECTED: Image Management */}
+          {/* PROTECTED — Appointments */}
+          <Route
+            path="/appointments"
+            element={
+              <ProtectedRoute module="appointments">
+                <ProtectedLayout><Appointments /></ProtectedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* PROTECTED — Images (admin + doctor only) */}
           <Route
             path="/images"
             element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <ImageManagement />
-                </ProtectedLayout>
+              <ProtectedRoute module="images">
+                <ProtectedLayout><ImageManagement /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* ✅ PROTECTED: Staff Management */}
+          {/* PROTECTED — Staff (admin only) */}
           <Route
             path="/staff"
             element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <StaffManagement />
-                </ProtectedLayout>
+              <ProtectedRoute module="staff">
+                <ProtectedLayout><StaffManagement /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* ✅ PROTECTED: Reports */}
+          {/* PROTECTED — Reports (admin + doctor only) */}
           <Route
             path="/reports"
             element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <Reports />
-                </ProtectedLayout>
+              <ProtectedRoute module="reports">
+                <ProtectedLayout><Reports /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
 
-          {/* ✅ Redirect unknown routes to home */}
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

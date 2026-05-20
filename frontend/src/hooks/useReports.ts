@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-
 import { reportApi } from '../api/reportApi';
 
 export function usePatientHistory(patientId: string) {
@@ -19,5 +18,14 @@ export function useDiagnosticReport(patientId: string) {
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
     enabled: !!patientId,
+  });
+}
+
+export function useAppointmentAnalytics() {
+  return useQuery({
+    queryKey: ['appointment-analytics'],
+    queryFn: () => reportApi.getAppointmentAnalytics(),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 }
