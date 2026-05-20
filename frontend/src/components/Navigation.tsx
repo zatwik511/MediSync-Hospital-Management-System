@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Menu, X, LogOut } from 'lucide-react';
 import { useAuth, canAccess } from '../hooks/useAuth';
+import { apiClient } from '../api/client';
 
 const ALL_NAV_ITEMS = [
   { label: 'Dashboard', path: '/', module: 'dashboard' },
@@ -10,6 +11,7 @@ const ALL_NAV_ITEMS = [
   { label: 'Images', path: '/images', module: 'images' },
   { label: 'Staff', path: '/staff', module: 'staff' },
   { label: 'Reports', path: '/reports', module: 'reports' },
+  { label: 'Audit Log', path: '/audit', module: 'audit' },
 ];
 
 const ROLE_BADGE: Record<string, string> = {
@@ -31,10 +33,12 @@ export function Navigation() {
     user ? canAccess(user.role, item.module) : false
   );
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await apiClient.post('/auth/logout'); } catch { /* ignore */ }
     localStorage.removeItem('staffId');
     localStorage.removeItem('staffName');
     localStorage.removeItem('staffRole');
+    localStorage.removeItem('staffCode');
     navigate('/login');
   };
 

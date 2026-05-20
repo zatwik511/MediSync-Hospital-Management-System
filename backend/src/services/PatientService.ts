@@ -1,80 +1,97 @@
 import { pool } from '../database/db';
 import { Patient, CreatePatientDTO } from '../models/types';
+import { auditService } from './AuditService';
 
 export class PatientService {
 
-  // METHOD 1: Create a new patient
-  async createPatient(data: CreatePatientDTO): Promise<Patient> {
+  async createPatient(data: CreatePatientDTO, staffId = ''): Promise<Patient> {
     const { name, address, conditions } = data;
-
     const result = await pool.query(
       `INSERT INTO patients (name, address, conditions, diagnosis, "totalCost", "medicalHistory", "createdAt")
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
        RETURNING *`,
       [name, address, conditions || [], '', 0, []]
     );
-
-    return result.rows[0] as Patient;
+    const patient = result.rows[0] as Patient;
+    await auditService.logAction({
+      staffId,
+      action: 'CREATE',
+      entityType: 'patient',
+      entityId: patient.id,
+      description: `Created patient record for ${name}`,
+    });
+    return patient;
   }
 
-  // METHOD 2: Get a patient by their ID
-  async getPatient(patientID: string): Promise<Patient | null> {
-    const result = await pool.query(
-      `SELECT * FROM patients WHERE id = $1`,
-      [patientID]
-    );
-
-    return result.rows[0] || null;
+  async getPatient(patientID: string, staffId = ''): Promise<Patient | null> {
+    const result = await pool.query(`SELECT * FROM patients WHERE id = $1`, [patientID]);
+    const patient = result.rows[0] || null;
+    if (patient && staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'patient',
+        entityId: patientID,
+        description: `Viewed patient record for ${patient.name}`,
+      });
+    }
+    return patient;
   }
 
-  // METHOD 3: Get ALL patients
-  async listPatients(): Promise<Patient[]> {
-    const result = await pool.query(
-      `SELECT * FROM patients ORDER BY "createdAt" DESC`
-    );
-
+  async listPatients(staffId = ''): Promise<Patient[]> {
+    const result = await pool.query(`SELECT * FROM patients ORDER BY "createdAt" DESC`);
+    if (staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'patient',
+        description: `Listed all patients (${result.rows.length} records)`,
+      });
+    }
     return result.rows as Patient[];
   }
 
-  // METHOD 4: Delete a patient
-  async deletePatient(patientID: string): Promise<void> {
-    await pool.query(
-      `DELETE FROM patients WHERE id = $1`,
-      [patientID]
-    );
+  async deletePatient(patientID: string, staffId = ''): Promise<void> {
+    const patient = await pool.query(`SELECT name FROM patients WHERE id = $1`, [patientID]);
+    const name = patient.rows[0]?.name || patientID;
+    await pool.query(`DELETE FROM patients WHERE id = $1`, [patientID]);
+    await auditService.logAction({
+      staffId,
+      action: 'DELETE',
+      entityType: 'patient',
+      entityId: patientID,
+      description: `Deleted patient record for ${name}`,
+    });
   }
 
-  // METHOD 5: Update diagnosis
-  async updateDiagnosis(patientID: string, diagnosis: string): Promise<Patient> {
+  async updateDiagnosis(patientID: string, diagnosis: string, staffId = ''): Promise<Patient> {
     const result = await pool.query(
       `UPDATE patients SET diagnosis = $1 WHERE id = $2 RETURNING *`,
       [diagnosis, patientID]
     );
-
     if (!result.rows[0]) throw new Error('Patient not found');
-    return result.rows[0] as Patient;
+    const patient = result.rows[0] as Patient;
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'patient',
+      entityId: patientID,
+      description: `Updated diagnosis for ${patient.name}: "${diagnosis}"`,
+    });
+    return patient;
   }
 
-  // METHOD 6: Get total cost for a patient
   async getTotalCost(patientID: string): Promise<number> {
     const patient = await this.getPatient(patientID);
     return patient?.totalCost || 0;
   }
 
-  // METHOD 7: Update total cost (called by FinancialService)
   async updateTotalCost(patientID: string, newTotal: number): Promise<void> {
-    await pool.query(
-      `UPDATE patients SET "totalCost" = $1 WHERE id = $2`,
-      [newTotal, patientID]
-    );
+    await pool.query(`UPDATE patients SET "totalCost" = $1 WHERE id = $2`, [newTotal, patientID]);
   }
 
-  // METHOD 8: Count total patients
   async getTotalPatientCount(): Promise<number> {
-    const result = await pool.query(
-      `SELECT COUNT(*) FROM patients`
-    );
-
+    const result = await pool.query(`SELECT COUNT(*) FROM patients`);
     return parseInt(result.rows[0].count, 10);
   }
 }

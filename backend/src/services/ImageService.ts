@@ -1,9 +1,9 @@
 import { pool } from '../database/db';
 import { MedicalImage, UploadImageDTO } from '../models/types';
+import { auditService } from './AuditService';
 
 export class ImageService {
 
-  // Helper function to transform database rows to MedicalImage format
   private transformToMedicalImage(row: any): MedicalImage {
     return {
       id: row.id,
@@ -16,6 +16,7 @@ export class ImageService {
     };
   }
 
+  // uploadedBy doubles as staffId for audit purposes
   async uploadImage(data: UploadImageDTO, uploadedBy: string): Promise<MedicalImage> {
     const result = await pool.query(
       `INSERT INTO medical_images (patient_id, uploaded_at, uploaded_by, type, disease_classification, image_url)
@@ -23,49 +24,70 @@ export class ImageService {
        RETURNING *`,
       [data.patientID, uploadedBy, data.imageType, data.diseaseType || null, `/uploads/${data.fileName}`]
     );
-
-    return this.transformToMedicalImage(result.rows[0]);
+    const image = this.transformToMedicalImage(result.rows[0]);
+    await auditService.logAction({
+      staffId: uploadedBy,
+      action: 'CREATE',
+      entityType: 'image',
+      entityId: image.id,
+      description: `Uploaded ${data.imageType} image for patient ${data.patientID}`,
+    });
+    return image;
   }
 
-  async getImagesByPatient(patientID: string): Promise<MedicalImage[]> {
+  async getImagesByPatient(patientID: string, staffId = ''): Promise<MedicalImage[]> {
     const result = await pool.query(
       `SELECT * FROM medical_images WHERE patient_id = $1 ORDER BY uploaded_at DESC`,
       [patientID]
     );
-
+    if (staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'image',
+        entityId: patientID,
+        description: `Viewed medical images for patient ${patientID} (${result.rows.length} images)`,
+      });
+    }
     return result.rows.map(row => this.transformToMedicalImage(row));
   }
 
-  async classifyImage(imageID: string, imageType: string, diseaseType: string): Promise<MedicalImage | null> {
+  async classifyImage(imageID: string, imageType: string, diseaseType: string, staffId = ''): Promise<MedicalImage | null> {
     const result = await pool.query(
       `UPDATE medical_images SET type = $1, disease_classification = $2 WHERE id = $3 RETURNING *`,
       [imageType, diseaseType, imageID]
     );
-
-    return result.rows[0] ? this.transformToMedicalImage(result.rows[0]) : null;
+    const image = result.rows[0] ? this.transformToMedicalImage(result.rows[0]) : null;
+    if (image && staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'UPDATE',
+        entityType: 'image',
+        entityId: imageID,
+        description: `Classified image as ${imageType} / ${diseaseType}`,
+      });
+    }
+    return image;
   }
 
   async getImageByID(imageID: string): Promise<MedicalImage | null> {
-    const result = await pool.query(
-      `SELECT * FROM medical_images WHERE id = $1`,
-      [imageID]
-    );
-
+    const result = await pool.query(`SELECT * FROM medical_images WHERE id = $1`, [imageID]);
     return result.rows[0] ? this.transformToMedicalImage(result.rows[0]) : null;
   }
 
-  async deleteImage(imageID: string): Promise<void> {
-    await pool.query(
-      `DELETE FROM medical_images WHERE id = $1`,
-      [imageID]
-    );
+  async deleteImage(imageID: string, staffId = ''): Promise<void> {
+    await pool.query(`DELETE FROM medical_images WHERE id = $1`, [imageID]);
+    await auditService.logAction({
+      staffId,
+      action: 'DELETE',
+      entityType: 'image',
+      entityId: imageID,
+      description: `Deleted medical image ${imageID}`,
+    });
   }
 
-  // NEW: Count total medical images across all patients
   async getTotalImageCount(): Promise<number> {
-    const result = await pool.query(
-      `SELECT COUNT(*) FROM medical_images`
-    );
+    const result = await pool.query(`SELECT COUNT(*) FROM medical_images`);
     return parseInt(result.rows[0].count, 10);
   }
 }

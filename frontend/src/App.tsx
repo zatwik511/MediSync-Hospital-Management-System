@@ -18,6 +18,7 @@ import { StaffManagement } from './pages/StaffManagement';
 import { Reports } from './pages/Reports';
 import { Login } from './pages/Login';
 import { Appointments } from './pages/Appointments';
+import { AuditLog } from './pages/AuditLog';
 
 // Auth
 import { canAccess } from './hooks/useAuth';
@@ -152,6 +153,16 @@ function App() {
             element={
               <ProtectedRoute module="reports">
                 <ProtectedLayout><Reports /></ProtectedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* PROTECTED — Audit Log (admin only) */}
+          <Route
+            path="/audit"
+            element={
+              <ProtectedRoute module="audit">
+                <ProtectedLayout><AuditLog /></ProtectedLayout>
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,5 @@
 import { pool } from '../database/db';
+import { auditService } from './AuditService';
 
 export interface Appointment {
   id: string;
@@ -33,7 +34,6 @@ export interface CreateAppointmentDTO {
 
 export class AppointmentService {
 
-  // Helper to transform raw database row to Appointment object
   private transformAppointment(row: any): Appointment {
     return {
       id: row.id,
@@ -50,19 +50,13 @@ export class AppointmentService {
     };
   }
 
-  // METHOD 1: Book a new appointment
-  async createAppointment(data: CreateAppointmentDTO): Promise<Appointment> {
-    // Check the slot isn't already taken
+  async createAppointment(data: CreateAppointmentDTO, staffId = ''): Promise<Appointment> {
     const conflict = await pool.query(
       `SELECT id FROM appointments
-       WHERE doctor_id = $1 AND date = $2 AND time = $3
-       AND status != 'Cancelled'`,
+       WHERE doctor_id = $1 AND date = $2 AND time = $3 AND status != 'Cancelled'`,
       [data.doctorID, data.date, data.time]
     );
-
-    if (conflict.rows.length > 0) {
-      throw new Error('This time slot is already booked');
-    }
+    if (conflict.rows.length > 0) throw new Error('This time slot is already booked');
 
     const result = await pool.query(
       `INSERT INTO appointments (patient_id, doctor_id, date, time, type, status, reason)
@@ -70,24 +64,36 @@ export class AppointmentService {
        RETURNING *`,
       [data.patientID, data.doctorID, data.date, data.time, data.type || 'In-Person', data.reason || null]
     );
-
-    return this.transformAppointment(result.rows[0]);
+    const appt = this.transformAppointment(result.rows[0]);
+    await auditService.logAction({
+      staffId,
+      action: 'CREATE',
+      entityType: 'appointment',
+      entityId: appt.id,
+      description: `Booked ${appt.type} appointment on ${appt.date} at ${appt.time}`,
+    });
+    return appt;
   }
 
-  // METHOD 2: Get all appointments (with doctor name joined in)
-  async listAppointments(): Promise<Appointment[]> {
+  async listAppointments(staffId = ''): Promise<Appointment[]> {
     const result = await pool.query(
       `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty
        FROM appointments a
        LEFT JOIN doctors d ON a.doctor_id = d.id
        ORDER BY a.date ASC, a.time ASC`
     );
-
+    if (staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'appointment',
+        description: `Listed all appointments (${result.rows.length} records)`,
+      });
+    }
     return result.rows.map(row => this.transformAppointment(row));
   }
 
-  // METHOD 3: Get appointments for a specific patient
-  async getAppointmentsByPatient(patientID: string): Promise<Appointment[]> {
+  async getAppointmentsByPatient(patientID: string, staffId = ''): Promise<Appointment[]> {
     const result = await pool.query(
       `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty
        FROM appointments a
@@ -96,12 +102,19 @@ export class AppointmentService {
        ORDER BY a.date ASC, a.time ASC`,
       [patientID]
     );
-
+    if (staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'appointment',
+        entityId: patientID,
+        description: `Viewed appointments for patient ${patientID}`,
+      });
+    }
     return result.rows.map(row => this.transformAppointment(row));
   }
 
-  // METHOD 4: Get a single appointment by ID
-  async getAppointment(appointmentID: string): Promise<Appointment | null> {
+  async getAppointment(appointmentID: string, staffId = ''): Promise<Appointment | null> {
     const result = await pool.query(
       `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty
        FROM appointments a
@@ -109,51 +122,58 @@ export class AppointmentService {
        WHERE a.id = $1`,
       [appointmentID]
     );
-
-    return result.rows[0] ? this.transformAppointment(result.rows[0]) : null;
+    const appt = result.rows[0] ? this.transformAppointment(result.rows[0]) : null;
+    if (appt && staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'appointment',
+        entityId: appointmentID,
+        description: `Viewed appointment on ${appt.date} at ${appt.time}`,
+      });
+    }
+    return appt;
   }
 
-  // METHOD 5: Reschedule an appointment
-  async rescheduleAppointment(appointmentID: string, date: string, time: string): Promise<Appointment> {
-    // Get the appointment to find the doctor
+  async rescheduleAppointment(appointmentID: string, date: string, time: string, staffId = ''): Promise<Appointment> {
     const existing = await this.getAppointment(appointmentID);
     if (!existing) throw new Error('Appointment not found');
 
-    // Check new slot isn't taken
     const conflict = await pool.query(
       `SELECT id FROM appointments
-       WHERE doctor_id = $1 AND date = $2 AND time = $3
-       AND status != 'Cancelled' AND id != $4`,
+       WHERE doctor_id = $1 AND date = $2 AND time = $3 AND status != 'Cancelled' AND id != $4`,
       [existing.doctorID, date, time, appointmentID]
     );
-
-    if (conflict.rows.length > 0) {
-      throw new Error('This time slot is already booked');
-    }
+    if (conflict.rows.length > 0) throw new Error('This time slot is already booked');
 
     const result = await pool.query(
-      `UPDATE appointments SET date = $1, time = $2, status = 'Confirmed'
-       WHERE id = $3 RETURNING *`,
+      `UPDATE appointments SET date = $1, time = $2, status = 'Confirmed' WHERE id = $3 RETURNING *`,
       [date, time, appointmentID]
     );
-
-    return this.transformAppointment(result.rows[0]);
+    const appt = this.transformAppointment(result.rows[0]);
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'appointment',
+      entityId: appointmentID,
+      description: `Rescheduled appointment to ${date} at ${time}`,
+    });
+    return appt;
   }
 
-  // METHOD 6: Cancel an appointment
-  async cancelAppointment(appointmentID: string): Promise<void> {
-    await pool.query(
-      `UPDATE appointments SET status = 'Cancelled' WHERE id = $1`,
-      [appointmentID]
-    );
+  async cancelAppointment(appointmentID: string, staffId = ''): Promise<void> {
+    await pool.query(`UPDATE appointments SET status = 'Cancelled' WHERE id = $1`, [appointmentID]);
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'appointment',
+      entityId: appointmentID,
+      description: `Cancelled appointment ${appointmentID}`,
+    });
   }
 
-  // METHOD 7: Get all doctors
   async listDoctors(): Promise<Doctor[]> {
-    const result = await pool.query(
-      `SELECT * FROM doctors ORDER BY name ASC`
-    );
-
+    const result = await pool.query(`SELECT * FROM doctors ORDER BY name ASC`);
     return result.rows.map(row => ({
       id: row.id,
       name: row.name,
@@ -163,22 +183,16 @@ export class AppointmentService {
     }));
   }
 
-  // METHOD 8: Get booked slots for a doctor on a specific date
   async getBookedSlots(doctorID: string, date: string): Promise<string[]> {
     const result = await pool.query(
-      `SELECT time FROM appointments
-       WHERE doctor_id = $1 AND date = $2 AND status != 'Cancelled'`,
+      `SELECT time FROM appointments WHERE doctor_id = $1 AND date = $2 AND status != 'Cancelled'`,
       [doctorID, date]
     );
-
     return result.rows.map(row => row.time);
   }
 
-  // METHOD 9: Count total appointments
   async getTotalAppointmentCount(): Promise<number> {
-    const result = await pool.query(
-      `SELECT COUNT(*) FROM appointments WHERE status != 'Cancelled'`
-    );
+    const result = await pool.query(`SELECT COUNT(*) FROM appointments WHERE status != 'Cancelled'`);
     return parseInt(result.rows[0].count, 10);
   }
 }

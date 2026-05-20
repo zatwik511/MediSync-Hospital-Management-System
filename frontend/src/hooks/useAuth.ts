@@ -19,7 +19,7 @@ export function useAuth(): AuthUser | null {
 // Permission helpers
 export function canAccess(role: string, module: string): boolean {
   const permissions: Record<string, string[]> = {
-    admin: ['dashboard', 'patients', 'appointments', 'images', 'staff', 'reports', 'financial'],
+    admin: ['dashboard', 'patients', 'appointments', 'images', 'staff', 'reports', 'financial', 'audit'],
     doctor: ['dashboard', 'patients', 'appointments', 'images', 'reports'],
     receptionist: ['dashboard', 'patients', 'appointments'],
   };

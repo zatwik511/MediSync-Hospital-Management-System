@@ -10,6 +10,7 @@ import financialRoutes from './routes/financialRoutes';
 import reportRoutes from './routes/reportRoutes';
 import authRoutes from './routes/authRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
+import auditRoutes from './routes/auditRoutes';
 
 // Middleware
 import { authMiddleware } from './middleware/authMiddleware';
@@ -62,6 +63,7 @@ app.use('/api/images', authMiddleware, imageRoutes);
 app.use('/api/financial', authMiddleware, financialRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/appointments', authMiddleware, appointmentRoutes);
+app.use('/api/audit', authMiddleware, auditRoutes);
 
 // 7. Global error handler
 app.use(errorHandler);
