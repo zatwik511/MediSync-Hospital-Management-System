@@ -5,7 +5,8 @@ import { apiClient } from '../api/client';
 import { LoadingSpinnerInline } from '../components/LoadingSpinner';
 
 export function Login() {
-  const [credential, setCredential] = useState('');
+  const [staffCode, setStaffCode] = useState('');
+  const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -17,22 +18,20 @@ export function Login() {
 
     try {
       const response = await apiClient.post('/auth/login', {
-        id: credential.includes('-') ? credential : undefined,
-        name: !credential.includes('-') ? credential : undefined,
+        staff_code: staffCode.trim().toUpperCase(),
+        pin,
       });
 
       if (response.data.success) {
-        const { id, name, role } = response.data.data;
-
-        // Save all staff info to localStorage
+        const { id, name, role, staff_code } = response.data.data;
         localStorage.setItem('staffId', id);
         localStorage.setItem('staffName', name);
         localStorage.setItem('staffRole', role);
-
+        localStorage.setItem('staffCode', staff_code);
         navigate('/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Check your ID/Name.');
+      setError(err.response?.data?.error || 'Invalid staff code or PIN.');
     } finally {
       setLoading(false);
     }
@@ -55,14 +54,32 @@ export function Login() {
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Staff ID or Name
+              Staff Code
             </label>
             <input
               type="text"
-              value={credential}
-              onChange={(e) => setCredential(e.target.value)}
+              value={staffCode}
+              onChange={(e) => setStaffCode(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              placeholder="e.g., Admin User or staff UUID"
+              placeholder="e.g., ADM-001"
+              autoComplete="username"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              PIN
+            </label>
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              placeholder="6-digit PIN"
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -76,12 +93,11 @@ export function Login() {
           </button>
         </form>
 
-        {/* Role hint for testing */}
         <div className="mt-6 p-3 bg-gray-50 rounded-md text-xs text-gray-500 space-y-1">
-          <p className="font-medium text-gray-600 mb-2">Test accounts (use name or ID):</p>
-          <p>🔴 <strong>Admin User</strong> — full access</p>
-          <p>🔵 <strong>Dr. Sarah Chen</strong> — doctor access</p>
-          <p>🟢 <strong>Emma Clarke</strong> — receptionist access</p>
+          <p className="font-medium text-gray-600 mb-2">Default PIN for all accounts: 000000</p>
+          <p>ADM-001 — Admin User (full access)</p>
+          <p>DOC-001 — Dr. Sarah Chen (doctor)</p>
+          <p>REC-001 — Emma Clarke (receptionist)</p>
         </div>
       </div>
     </div>

@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CreateStaffDTO } from '../types';
 import { staffApi } from '../api/staffApi';
 
@@ -30,22 +26,17 @@ export function useStaffMember(staffId: string) {
 
 export function useCreateStaff() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: CreateStaffDTO) => staffApi.createStaff(data),
     onSuccess: (newStaff) => {
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEY });
-      queryClient.setQueryData(
-        STAFF_MEMBER_QUERY_KEY(newStaff.id),
-        newStaff
-      );
+      queryClient.setQueryData(STAFF_MEMBER_QUERY_KEY(newStaff.id), newStaff);
     },
   });
 }
 
 export function useDeleteStaff() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (staffId: string) => staffApi.deleteStaff(staffId),
     onSuccess: () => {
@@ -54,8 +45,9 @@ export function useDeleteStaff() {
   });
 }
 
-export function useAuthenticateStaff() {
+export function useResetPin() {
   return useMutation({
-    mutationFn: (staffId: string) => staffApi.authenticateStaff(staffId),
+    mutationFn: ({ staffId, newPin }: { staffId: string; newPin: string }) =>
+      staffApi.resetPin(staffId, newPin),
   });
 }

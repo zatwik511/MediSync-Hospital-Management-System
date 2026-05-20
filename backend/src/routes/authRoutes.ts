@@ -1,37 +1,30 @@
-// backend/src/routes/authRoutes.ts
 import { Router, Request, Response } from 'express';
-import { pool } from '../database/db';
+import { staffService } from '../services/StaffService';
 
 const router = Router();
 
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response) => {
-  const { name, id } = req.body;
+  const { staff_code, pin } = req.body;
+
+  if (!staff_code || !pin) {
+    return res.status(400).json({ success: false, error: 'Staff code and PIN are required' });
+  }
 
   try {
-    let result;
+    const staff = await staffService.verifyLogin(staff_code, pin);
 
-    if (id) {
-      result = await pool.query(`SELECT * FROM staff WHERE id = $1`, [id]);
-    } else if (name) {
-      result = await pool.query(`SELECT * FROM staff WHERE name = $1`, [name]);
-    } else {
-      return res.status(400).json({ success: false, error: 'Name or ID required' });
+    if (!staff) {
+      return res.status(401).json({ success: false, error: 'Invalid staff code or PIN' });
     }
 
-    const data = result.rows[0];
-
-    if (!data) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
-
-    // Return id, name AND role so frontend can store all three
     return res.json({
       success: true,
       data: {
-        id: data.id,
-        name: data.name,
-        role: data.role,
+        id: staff.id,
+        name: staff.name,
+        role: staff.role,
+        staff_code: staff.staff_code,
       },
     });
   } catch (err: any) {

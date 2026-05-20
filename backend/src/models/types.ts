@@ -18,9 +18,11 @@ export interface Patient extends User {
 
 // Staff Model (Doctor, Radiologist, Admin)
 export interface Staff extends User {
-  role: 'radiologist' | 'doctor' | 'admin';  // What role they have
-  specialization: string;  // Their expertise (e.g., "Cardiology")
-  certifications: string[]; // Professional certificates
+  role: 'radiologist' | 'doctor' | 'admin' | 'receptionist';
+  specialization: string;
+  certifications: string[];
+  staff_code: string;
+  pin?: string;
 }
 
 // Medical Image Model
@@ -61,7 +63,7 @@ export interface CreatePatientDTO {
 export interface CreateStaffDTO {
   name: string;
   address: string;
-  role: 'radiologist' | 'doctor' | 'admin';
+  role: 'radiologist' | 'doctor' | 'admin' | 'receptionist';
   specialization: string;
 }
 
