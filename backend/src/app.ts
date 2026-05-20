@@ -9,6 +9,7 @@ import imageRoutes from './routes/imageRoutes';
 import financialRoutes from './routes/financialRoutes';
 import reportRoutes from './routes/reportRoutes';
 import authRoutes from './routes/authRoutes';
+import patientAuthRoutes from './routes/patientAuthRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import auditRoutes from './routes/auditRoutes';
 
@@ -55,6 +56,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // 5. PUBLIC ROUTES (No Auth Required)
 app.use('/api/auth', authRoutes);
+app.use('/api/patient-auth', patientAuthRoutes);
 
 // 6. PROTECTED ROUTES (Require x-staff-id)
 app.use('/api/patients', authMiddleware, patientRoutes);

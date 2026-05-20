@@ -17,11 +17,13 @@ import { ImageManagement } from './pages/ImageManagement';
 import { StaffManagement } from './pages/StaffManagement';
 import { Reports } from './pages/Reports';
 import { Login } from './pages/Login';
+import { PatientLogin } from './pages/PatientLogin';
 import { Appointments } from './pages/Appointments';
 import { AuditLog } from './pages/AuditLog';
 
 // Auth
 import { canAccess } from './hooks/useAuth';
+import { PatientRoute } from './components/PatientRoute';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 
 interface ProtectedRouteProps {
@@ -72,6 +74,29 @@ function ProtectedLayout({ children }: LayoutProps) {
   );
 }
 
+function PatientPortalPlaceholder() {
+  const name = localStorage.getItem('patientName') || 'Patient';
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-sm w-full">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome, {name}</h2>
+        <p className="text-gray-500 text-sm mb-6">Patient portal coming soon.</p>
+        <button
+          onClick={() => {
+            localStorage.removeItem('patientId');
+            localStorage.removeItem('patientName');
+            localStorage.removeItem('patientEmail');
+            window.location.href = '/patient-login';
+          }}
+          className="text-sm text-red-600 hover:underline"
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -88,6 +113,7 @@ function App() {
         <Routes>
           {/* PUBLIC */}
           <Route path="/login" element={<Login />} />
+          <Route path="/patient-login" element={<PatientLogin />} />
 
           {/* PROTECTED — Dashboard */}
           <Route
@@ -166,6 +192,16 @@ function App() {
               <ProtectedRoute module="audit">
                 <ProtectedLayout><AuditLog /></ProtectedLayout>
               </ProtectedRoute>
+            }
+          />
+
+          {/* PATIENT PORTAL — protected by patientId in localStorage */}
+          <Route
+            path="/patient-portal"
+            element={
+              <PatientRoute>
+                <PatientPortalPlaceholder />
+              </PatientRoute>
             }
           />
 
