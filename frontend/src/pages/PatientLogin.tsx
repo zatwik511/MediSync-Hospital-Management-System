@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { LoadingSpinnerInline } from '../components/LoadingSpinner';
 
@@ -51,6 +52,13 @@ export function PatientLogin() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 mb-6 -ml-1 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back
+        </button>
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">IMS Healthcare</h1>
           <p className="text-gray-600 mt-2">Patient Portal</p>
@@ -139,11 +147,6 @@ export function PatientLogin() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <a href="/login" className="text-sm text-gray-500 hover:text-gray-700">
-            Staff? Sign in to the staff portal
-          </a>
-        </div>
       </div>
     </div>
   );

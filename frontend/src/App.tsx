@@ -16,10 +16,13 @@ import { PatientDetails } from './pages/PatientDetails';
 import { ImageManagement } from './pages/ImageManagement';
 import { StaffManagement } from './pages/StaffManagement';
 import { Reports } from './pages/Reports';
+import { LandingPage } from './pages/LandingPage';
 import { Login } from './pages/Login';
 import { PatientLogin } from './pages/PatientLogin';
 import { Appointments } from './pages/Appointments';
 import { AuditLog } from './pages/AuditLog';
+import { BookAppointment } from './pages/patient/BookAppointment';
+import { MyAppointments } from './pages/patient/MyAppointments';
 
 // Auth
 import { canAccess } from './hooks/useAuth';
@@ -37,7 +40,7 @@ function ProtectedRoute({ children, module }: ProtectedRouteProps) {
   const role = localStorage.getItem('staffRole') || '';
 
   if (!staffId) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (module && !canAccess(role, module)) {
@@ -49,7 +52,7 @@ function ProtectedRoute({ children, module }: ProtectedRouteProps) {
           <p className="text-gray-500 text-sm">
             Your role ({role}) does not have permission to view this page.
           </p>
-          <a href="/" className="mt-4 inline-block text-blue-600 hover:underline text-sm">
+          <a href="/dashboard" className="mt-4 inline-block text-blue-600 hover:underline text-sm">
             Go to Dashboard
           </a>
         </div>
@@ -74,25 +77,11 @@ function ProtectedLayout({ children }: LayoutProps) {
   );
 }
 
-function PatientPortalPlaceholder() {
-  const name = localStorage.getItem('patientName') || 'Patient';
+
+function MyRecordsPlaceholder() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-sm w-full">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome, {name}</h2>
-        <p className="text-gray-500 text-sm mb-6">Patient portal coming soon.</p>
-        <button
-          onClick={() => {
-            localStorage.removeItem('patientId');
-            localStorage.removeItem('patientName');
-            localStorage.removeItem('patientEmail');
-            window.location.href = '/patient-login';
-          }}
-          className="text-sm text-red-600 hover:underline"
-        >
-          Sign out
-        </button>
-      </div>
+    <div className="min-h-[60vh] flex items-center justify-center text-gray-400 text-sm">
+      My Records — coming soon.
     </div>
   );
 }
@@ -111,13 +100,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          {/* PUBLIC */}
+          {/* PUBLIC — Landing + login pages */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/patient-login" element={<PatientLogin />} />
 
           {/* PROTECTED — Dashboard */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute module="dashboard">
                 <ProtectedLayout><Dashboard /></ProtectedLayout>
@@ -197,12 +187,20 @@ function App() {
 
           {/* PATIENT PORTAL — protected by patientId in localStorage */}
           <Route
+            path="/patient/appointments"
+            element={<PatientRoute><MyAppointments /></PatientRoute>}
+          />
+          <Route
+            path="/patient/book-appointment"
+            element={<PatientRoute><BookAppointment /></PatientRoute>}
+          />
+          <Route
+            path="/patient/records"
+            element={<PatientRoute><MyRecordsPlaceholder /></PatientRoute>}
+          />
+          <Route
             path="/patient-portal"
-            element={
-              <PatientRoute>
-                <PatientPortalPlaceholder />
-              </PatientRoute>
-            }
+            element={<Navigate to="/patient/appointments" replace />}
           />
 
           {/* Fallback */}

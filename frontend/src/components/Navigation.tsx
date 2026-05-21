@@ -5,7 +5,7 @@ import { useAuth, canAccess } from '../hooks/useAuth';
 import { apiClient } from '../api/client';
 
 const ALL_NAV_ITEMS = [
-  { label: 'Dashboard', path: '/', module: 'dashboard' },
+  { label: 'Dashboard', path: '/dashboard', module: 'dashboard' },
   { label: 'Patients', path: '/patients', module: 'patients' },
   { label: 'Appointments', path: '/appointments', module: 'appointments' },
   { label: 'Images', path: '/images', module: 'images' },
@@ -39,7 +39,7 @@ export function Navigation() {
     localStorage.removeItem('staffName');
     localStorage.removeItem('staffRole');
     localStorage.removeItem('staffCode');
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -47,7 +47,7 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/" className="text-xl font-bold text-primary-500">
+            <Link to="/dashboard" className="text-xl font-bold text-primary-500">
               IMS Healthcare
             </Link>
           </div>

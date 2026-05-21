@@ -10,11 +10,13 @@ import financialRoutes from './routes/financialRoutes';
 import reportRoutes from './routes/reportRoutes';
 import authRoutes from './routes/authRoutes';
 import patientAuthRoutes from './routes/patientAuthRoutes';
+import patientAppointmentRoutes from './routes/patientAppointmentRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import auditRoutes from './routes/auditRoutes';
 
 // Middleware
 import { authMiddleware } from './middleware/authMiddleware';
+import { patientAuthMiddleware } from './middleware/patientAuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -32,6 +34,7 @@ app.use(cors({
   allowedHeaders: [
     'Content-Type',
     'x-staff-id',
+    'x-patient-id',
     'Authorization',
     'Accept'
   ],
@@ -58,7 +61,10 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/patient-auth', patientAuthRoutes);
 
-// 6. PROTECTED ROUTES (Require x-staff-id)
+// 6a. PATIENT PORTAL ROUTES (Require x-patient-id)
+app.use('/api/patient/appointments', patientAuthMiddleware, patientAppointmentRoutes);
+
+// 6b. PROTECTED ROUTES (Require x-staff-id)
 app.use('/api/patients', authMiddleware, patientRoutes);
 app.use('/api/staff', authMiddleware, staffRoutes);
 app.use('/api/images', authMiddleware, imageRoutes);
