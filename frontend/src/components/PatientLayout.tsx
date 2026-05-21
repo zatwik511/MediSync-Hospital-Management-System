@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Calendar, CalendarPlus, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, CalendarPlus, FileText, LogOut } from 'lucide-react';
 
 interface PatientLayoutProps {
   children: React.ReactNode;
@@ -31,6 +31,10 @@ export function PatientLayout({ children }: PatientLayoutProps) {
           <div className="flex items-center gap-6">
             <span className="font-bold text-gray-900 text-base">IMS Patient Portal</span>
             <div className="flex items-center gap-1">
+              <NavLink to="/patient/dashboard" className={linkClass}>
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </NavLink>
               <NavLink to="/patient/appointments" className={linkClass}>
                 <Calendar className="w-4 h-4" />
                 My Appointments

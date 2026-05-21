@@ -23,6 +23,8 @@ import { Appointments } from './pages/Appointments';
 import { AuditLog } from './pages/AuditLog';
 import { BookAppointment } from './pages/patient/BookAppointment';
 import { MyAppointments } from './pages/patient/MyAppointments';
+import { MyRecords } from './pages/patient/MyRecords';
+import { PatientDashboard } from './pages/patient/PatientDashboard';
 
 // Auth
 import { canAccess } from './hooks/useAuth';
@@ -78,13 +80,6 @@ function ProtectedLayout({ children }: LayoutProps) {
 }
 
 
-function MyRecordsPlaceholder() {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center text-gray-400 text-sm">
-      My Records — coming soon.
-    </div>
-  );
-}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -195,8 +190,12 @@ function App() {
             element={<PatientRoute><BookAppointment /></PatientRoute>}
           />
           <Route
+            path="/patient/dashboard"
+            element={<PatientRoute><PatientDashboard /></PatientRoute>}
+          />
+          <Route
             path="/patient/records"
-            element={<PatientRoute><MyRecordsPlaceholder /></PatientRoute>}
+            element={<PatientRoute><MyRecords /></PatientRoute>}
           />
           <Route
             path="/patient-portal"

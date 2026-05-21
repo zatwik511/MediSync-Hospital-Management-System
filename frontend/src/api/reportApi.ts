@@ -15,6 +15,15 @@ export interface AppointmentAnalytics {
   monthly: { month: string; count: number }[];
 }
 
+export interface AdvancedAppointmentAnalytics {
+  busiestDays: { day: number; dayName: string; count: number }[];
+  busiestSlots: { time: string; count: number }[];
+  avgPerWeek: number;
+  topReasons: { reason: string; count: number }[];
+  trend: { thisMonth: number; lastMonth: number; changePercent: number | null };
+  heatmap: { day: number; time: string; count: number }[];
+}
+
 export const reportApi = {
   // Generate patient history report
   async generatePatientHistory(patientId: string): Promise<PatientHistory> {
@@ -45,6 +54,16 @@ export const reportApi = {
     );
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to fetch analytics');
+    }
+    return response.data.data!;
+  },
+
+  async getAdvancedAnalytics(): Promise<AdvancedAppointmentAnalytics> {
+    const response = await apiClient.get<APIResponse<AdvancedAppointmentAnalytics>>(
+      '/reports/appointment-analytics/advanced'
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch advanced analytics');
     }
     return response.data.data!;
   },

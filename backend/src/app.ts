@@ -11,6 +11,7 @@ import reportRoutes from './routes/reportRoutes';
 import authRoutes from './routes/authRoutes';
 import patientAuthRoutes from './routes/patientAuthRoutes';
 import patientAppointmentRoutes from './routes/patientAppointmentRoutes';
+import patientDataRoutes from './routes/patientDataRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import auditRoutes from './routes/auditRoutes';
 
@@ -63,6 +64,7 @@ app.use('/api/patient-auth', patientAuthRoutes);
 
 // 6a. PATIENT PORTAL ROUTES (Require x-patient-id)
 app.use('/api/patient/appointments', patientAuthMiddleware, patientAppointmentRoutes);
+app.use('/api/patient/data', patientAuthMiddleware, patientDataRoutes);
 
 // 6b. PROTECTED ROUTES (Require x-staff-id)
 app.use('/api/patients', authMiddleware, patientRoutes);

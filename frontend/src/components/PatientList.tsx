@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { usePatients, useDeletePatient } from '../hooks/usePatients';
 import { LoadingSpinner } from './LoadingSpinner';
-import { Trash2, Eye } from 'lucide-react';
+import { Trash2, Eye, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { downloadCsv } from '../utils/exportCsv';
 
 export function PatientList() {
   const { data: patients, isLoading, error } = usePatients();
@@ -27,15 +28,37 @@ export function PatientList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
         <h2 className="section-heading mb-0">Patients</h2>
-        <input
-          type="text"
-          placeholder="Search patients..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field max-w-xs"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search patients..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input-field max-w-xs"
+          />
+          <button
+            onClick={() =>
+              downloadCsv(
+                `patients-${new Date().toISOString().split('T')[0]}.csv`,
+                ['Name', 'Address', 'Conditions', 'Diagnosis', 'Total Cost (£)', 'Created Date'],
+                filteredPatients.map((p) => [
+                  p.name,
+                  p.address,
+                  p.conditions.join('; '),
+                  p.diagnosis || '',
+                  Number(p.totalCost).toFixed(2),
+                  new Date(p.createdAt).toLocaleDateString('en-GB'),
+                ])
+              )
+            }
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm whitespace-nowrap"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {filteredPatients.length === 0 ? (

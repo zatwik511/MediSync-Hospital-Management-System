@@ -99,4 +99,110 @@ router.get('/appointment-analytics', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/reports/appointment-analytics/advanced
+router.get('/appointment-analytics/advanced', async (req: Request, res: Response) => {
+  try {
+    // Busiest day of week (0=Sun … 6=Sat), non-cancelled only
+    const dowResult = await pool.query(`
+      SELECT
+        EXTRACT(DOW FROM date::date)::int AS day_of_week,
+        COUNT(*) AS count
+      FROM appointments
+      WHERE status != 'Cancelled'
+      GROUP BY day_of_week
+      ORDER BY day_of_week
+    `);
+
+    const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const busiestDays = dowResult.rows.map(r => ({
+      day: r.day_of_week,
+      dayName: DAY_NAMES[r.day_of_week] ?? `Day ${r.day_of_week}`,
+      count: parseInt(r.count, 10),
+    }));
+
+    // Busiest time slot
+    const slotResult = await pool.query(`
+      SELECT time, COUNT(*) AS count
+      FROM appointments
+      WHERE status != 'Cancelled'
+      GROUP BY time
+      ORDER BY count DESC
+    `);
+    const busiestSlots = slotResult.rows.map(r => ({
+      time: r.time,
+      count: parseInt(r.count, 10),
+    }));
+
+    // Average appointments per week over last 3 months (~13 weeks)
+    const avgResult = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM appointments
+      WHERE date >= NOW() - INTERVAL '3 months'
+        AND status != 'Cancelled'
+    `);
+    const avgPerWeek = parseFloat((parseInt(avgResult.rows[0].total, 10) / 13).toFixed(1));
+
+    // Top 5 most common reasons (non-null/empty)
+    const reasonResult = await pool.query(`
+      SELECT reason, COUNT(*) AS count
+      FROM appointments
+      WHERE reason IS NOT NULL AND TRIM(reason) != ''
+        AND status != 'Cancelled'
+      GROUP BY reason
+      ORDER BY count DESC
+      LIMIT 5
+    `);
+    const topReasons = reasonResult.rows.map(r => ({
+      reason: r.reason,
+      count: parseInt(r.count, 10),
+    }));
+
+    // Month-over-month trend
+    const trendResult = await pool.query(`
+      SELECT
+        COUNT(CASE WHEN TO_CHAR(date::date, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM') THEN 1 END)::int AS this_month,
+        COUNT(CASE WHEN TO_CHAR(date::date, 'YYYY-MM') = TO_CHAR(NOW() - INTERVAL '1 month', 'YYYY-MM') THEN 1 END)::int AS last_month
+      FROM appointments
+      WHERE date::date >= DATE_TRUNC('month', NOW() - INTERVAL '1 month')
+        AND status != 'Cancelled'
+    `);
+    const thisMonth = trendResult.rows[0].this_month;
+    const lastMonth = trendResult.rows[0].last_month;
+    const changePercent = lastMonth > 0
+      ? parseFloat((((thisMonth - lastMonth) / lastMonth) * 100).toFixed(1))
+      : null;
+
+    // Heatmap: count by (day_of_week, time) for grid rendering
+    const heatmapResult = await pool.query(`
+      SELECT
+        EXTRACT(DOW FROM date::date)::int AS day_of_week,
+        time,
+        COUNT(*) AS count
+      FROM appointments
+      WHERE status != 'Cancelled'
+      GROUP BY day_of_week, time
+      ORDER BY day_of_week, time
+    `);
+    const heatmap = heatmapResult.rows.map(r => ({
+      day: r.day_of_week,
+      time: r.time,
+      count: parseInt(r.count, 10),
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        busiestDays,
+        busiestSlots,
+        avgPerWeek,
+        topReasons,
+        trend: { thisMonth, lastMonth, changePercent },
+        heatmap,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

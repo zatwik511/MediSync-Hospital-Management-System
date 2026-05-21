@@ -29,3 +29,12 @@ export function useAppointmentAnalytics() {
     gcTime: 1000 * 60 * 10,
   });
 }
+
+export function useAdvancedAppointmentAnalytics() {
+  return useQuery({
+    queryKey: ['appointment-analytics-advanced'],
+    queryFn: () => reportApi.getAdvancedAnalytics(),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+  });
+}

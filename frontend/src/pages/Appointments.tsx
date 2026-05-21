@@ -9,8 +9,9 @@ import {
   useCancelAppointment,
 } from '../hooks/useAppointments';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Calendar, Clock, User, Plus, X, RefreshCw, Search } from 'lucide-react';
+import { Calendar, Clock, User, Plus, X, RefreshCw, Search, Download } from 'lucide-react';
 import type { Appointment } from '../types/appointments';
+import { downloadCsv } from '../utils/exportCsv';
 
 const ALL_SLOTS = [
   '08:30', '09:00', '09:30', '10:00', '10:30', '11:00',
@@ -140,6 +141,26 @@ export function Appointments() {
     setBookError('');
   };
 
+  const handleExportCsv = () => {
+    downloadCsv(
+      `appointments-${new Date().toISOString().split('T')[0]}.csv`,
+      ['Patient', 'Doctor', 'Specialty', 'Date', 'Time', 'Type', 'Status', 'Reason'],
+      filtered.map((a) => {
+        const patient = patients?.find((p) => p.id === a.patientID);
+        return [
+          patient?.name || a.patientID,
+          a.doctorName || '',
+          a.doctorSpecialty || '',
+          a.date,
+          a.time,
+          a.type,
+          a.status,
+          a.reason || '',
+        ];
+      })
+    );
+  };
+
   if (isLoading) return <LoadingSpinner />;
 
   const active = appointments?.filter(a => a.status !== 'Cancelled') || [];
@@ -153,13 +174,22 @@ export function Appointments() {
           <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
           <p className="text-gray-500 mt-1">Manage patient appointments and scheduling</p>
         </div>
-        <button
-          onClick={() => { resetBookForm(); setShowBookModal(true); }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Book Appointment
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => { resetBookForm(); setShowBookModal(true); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Book Appointment
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

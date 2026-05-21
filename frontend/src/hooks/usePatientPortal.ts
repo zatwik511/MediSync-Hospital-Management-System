@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { patientClient } from '../api/patientClient';
 import type { Appointment, Doctor, CreateAppointmentDTO } from '../types/appointments';
-import type { APIResponse } from '../types';
+import type { APIResponse, Patient, MedicalImage, CostReport } from '../types';
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,39 @@ export function usePatientBookedSlots(doctorId: string, date: string) {
     },
     staleTime: 1000 * 60,
     enabled: !!doctorId && !!date,
+  });
+}
+
+export function usePatientProfile() {
+  return useQuery({
+    queryKey: ['patient-profile'],
+    queryFn: async (): Promise<Patient> => {
+      const res = await patientClient.get<APIResponse<Patient>>('/patient/data/profile');
+      return res.data.data!;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function usePatientImageRecords() {
+  return useQuery({
+    queryKey: ['patient-image-records'],
+    queryFn: async (): Promise<MedicalImage[]> => {
+      const res = await patientClient.get<APIResponse<MedicalImage[]>>('/patient/data/images');
+      return res.data.data ?? [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function usePatientFinancial() {
+  return useQuery({
+    queryKey: ['patient-financial'],
+    queryFn: async (): Promise<CostReport> => {
+      const res = await patientClient.get<APIResponse<CostReport>>('/patient/data/financial');
+      return res.data.data!;
+    },
+    staleTime: 1000 * 60 * 5,
   });
 }
 

@@ -1,11 +1,11 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { usePatient, useUpdateDiagnosis } from '../hooks/usePatients';
-import { useRecordTask } from '../hooks/useFinancial';
+import { useRecordTask, useCostReport } from '../hooks/useFinancial';
+import { usePatientAppointments } from '../hooks/useAppointments';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { PatientImageViewer } from '../components/PatientImageViewer';
 import { ImageUploader } from '../components/ImageUploader';
-import { ArrowLeft, Pencil, Check, X, PlusCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Pencil, Check, X, PlusCircle, FileDown } from 'lucide-react';
 import { useState } from 'react';
 
 export function PatientDetails() {
@@ -13,6 +13,8 @@ export function PatientDetails() {
   const { data: patient, isLoading, error } = usePatient(patientId!);
   const updateDiagnosis = useUpdateDiagnosis(patientId!);
   const recordTask = useRecordTask();
+  const { data: costReport } = useCostReport(patientId!);
+  const { data: appointments = [] } = usePatientAppointments(patientId!);
 
   // Local cost state — starts null, gets set when a task is saved
   const [displayCost, setDisplayCost] = useState<number | null>(null);
@@ -96,17 +98,37 @@ export function PatientDetails() {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Print styles — only active when window.print() is called */}
+      <style>{`
+        @media print {
+          nav, .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          body { background: white; margin: 0; }
+          @page { margin: 20mm; }
+        }
+        .print-only { display: none; }
+      `}</style>
+
       {/* Back Button */}
-      <Link
-        to="/patients"
-        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Patients
-      </Link>
+      <div className="flex items-center justify-between no-print">
+        <Link
+          to="/patients"
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Patients
+        </Link>
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
+        >
+          <FileDown className="w-4 h-4" />
+          Export PDF
+        </button>
+      </div>
 
       {/* Patient Header */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 no-print">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">{patient.name}</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -194,7 +216,7 @@ export function PatientDetails() {
       </div>
 
       {/* Financial Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 no-print">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Financial Records</h2>
           {!isAddingTask && (
@@ -266,13 +288,107 @@ export function PatientDetails() {
       </div>
 
       {/* Image Upload Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 no-print">
         <ImageUploader patientId={patient.id} />
       </div>
 
       {/* Image Viewer Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 no-print">
         <PatientImageViewer patientId={patient.id} />
+      </div>
+
+      {/* ── Print-only PDF report ───────────────────────────────────── */}
+      <div className="print-only" style={{ fontFamily: 'Georgia, serif', color: '#111' }}>
+        {/* Report header */}
+        <div style={{ borderBottom: '2px solid #1d4ed8', paddingBottom: '12px', marginBottom: '24px' }}>
+          <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1d4ed8' }}>IMS Healthcare</div>
+          <div style={{ fontSize: '16px', marginTop: '4px' }}>Patient Health Report</div>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+            Generated: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+        </div>
+
+        {/* Patient info */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient Information</div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <tbody>
+              {[
+                ['Full Name', patient.name],
+                ['Address', patient.address || '—'],
+                ['Current Diagnosis', patient.diagnosis || 'None recorded'],
+                ['Conditions', patient.conditions.length > 0 ? patient.conditions.join(', ') : 'None'],
+              ].map(([label, value]) => (
+                <tr key={label}>
+                  <td style={{ padding: '6px 12px 6px 0', fontWeight: 'bold', color: '#6b7280', width: '160px', verticalAlign: 'top' }}>{label}</td>
+                  <td style={{ padding: '6px 0', color: '#111' }}>{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Financial summary */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Financial Summary</div>
+          {costReport && costReport.tasks.length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Description</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {costReport.tasks.map((task) => (
+                  <tr key={task.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '6px 8px', color: '#374151' }}>{task.description}</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>£{Number(task.cost).toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr style={{ borderTop: '2px solid #e5e7eb', fontWeight: 'bold' }}>
+                  <td style={{ padding: '8px 8px' }}>Total</td>
+                  <td style={{ padding: '8px 8px', textAlign: 'right' }}>£{Number(costReport.totalCost).toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <p style={{ fontSize: '13px', color: '#9ca3af' }}>No financial records.</p>
+          )}
+        </div>
+
+        {/* Appointment history */}
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appointment History</div>
+          {appointments.length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Time</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Doctor</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Type</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 'bold', color: '#374151' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...appointments]
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .map((appt) => (
+                    <tr key={appt.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '6px 8px' }}>{new Date(appt.date).toLocaleDateString('en-GB')}</td>
+                      <td style={{ padding: '6px 8px' }}>{appt.time}</td>
+                      <td style={{ padding: '6px 8px' }}>{appt.doctorName || '—'}</td>
+                      <td style={{ padding: '6px 8px' }}>{appt.type}</td>
+                      <td style={{ padding: '6px 8px' }}>{appt.status}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          ) : (
+            <p style={{ fontSize: '13px', color: '#9ca3af' }}>No appointments on record.</p>
+          )}
+        </div>
       </div>
     </div>
   );

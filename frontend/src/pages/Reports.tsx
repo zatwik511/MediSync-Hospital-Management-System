@@ -1,9 +1,23 @@
 import { usePatients } from '../hooks/usePatients';
-import { usePatientHistory, useAppointmentAnalytics } from '../hooks/useReports';
+import { usePatientHistory, useAppointmentAnalytics, useAdvancedAppointmentAnalytics } from '../hooks/useReports';
 import { useState } from 'react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { DiagnosticReports } from '../components/DiagnosticReports';
-import { FileText, Calendar, TrendingUp, Users, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Calendar, TrendingUp, Users, CheckCircle, XCircle, Clock, BarChart2, MessageSquare, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+
+const ALL_SLOTS = [
+  '08:30', '09:00', '09:30', '10:00', '10:30', '11:00',
+  '11:30', '14:00', '14:30', '15:00', '15:30', '16:00',
+];
+const DAYS = [
+  { dow: 1, label: 'Mon' },
+  { dow: 2, label: 'Tue' },
+  { dow: 3, label: 'Wed' },
+  { dow: 4, label: 'Thu' },
+  { dow: 5, label: 'Fri' },
+  { dow: 6, label: 'Sat' },
+  { dow: 0, label: 'Sun' },
+];
 
 type Tab = 'patient' | 'analytics';
 
@@ -13,6 +27,7 @@ export function Reports() {
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const { data: history, isLoading: historyLoading } = usePatientHistory(selectedPatientId);
   const { data: analytics, isLoading: analyticsLoading } = useAppointmentAnalytics();
+  const { data: advanced, isLoading: advancedLoading } = useAdvancedAppointmentAnalytics();
 
   if (patientsLoading) return <LoadingSpinner />;
 
@@ -272,6 +287,194 @@ export function Reports() {
                     </div>
                   </div>
                 </div>
+
+                {/* ── Advanced Analytics ───────────────────────────────── */}
+                {advancedLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                  </div>
+                ) : advanced ? (
+                  <>
+                    <div className="mt-2">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Advanced Insights</h3>
+
+                      {/* Advanced stat cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                        {/* Busiest day */}
+                        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-indigo-500">
+                          <div className="flex items-center gap-2 mb-2">
+                            <BarChart2 className="w-4 h-4 text-indigo-500" />
+                            <span className="text-xs text-gray-500">Busiest Day</span>
+                          </div>
+                          {advanced.busiestDays.length > 0 ? (
+                            <>
+                              <p className="text-xl font-bold text-gray-900">
+                                {advanced.busiestDays.reduce((a, b) => a.count >= b.count ? a : b).dayName}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {advanced.busiestDays.reduce((a, b) => a.count >= b.count ? a : b).count} appts
+                              </p>
+                            </>
+                          ) : <p className="text-sm text-gray-400">No data</p>}
+                        </div>
+
+                        {/* Busiest slot */}
+                        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-cyan-500">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Clock className="w-4 h-4 text-cyan-500" />
+                            <span className="text-xs text-gray-500">Busiest Slot</span>
+                          </div>
+                          {advanced.busiestSlots.length > 0 ? (
+                            <>
+                              <p className="text-xl font-bold text-gray-900">{advanced.busiestSlots[0].time}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{advanced.busiestSlots[0].count} appts</p>
+                            </>
+                          ) : <p className="text-sm text-gray-400">No data</p>}
+                        </div>
+
+                        {/* Avg per week */}
+                        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-amber-500">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="w-4 h-4 text-amber-500" />
+                            <span className="text-xs text-gray-500">Avg / Week</span>
+                          </div>
+                          <p className="text-xl font-bold text-gray-900">{advanced.avgPerWeek}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">last 3 months</p>
+                        </div>
+
+                        {/* Top reason */}
+                        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-rose-400">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MessageSquare className="w-4 h-4 text-rose-400" />
+                            <span className="text-xs text-gray-500">Top Reason</span>
+                          </div>
+                          {advanced.topReasons.length > 0 ? (
+                            <>
+                              <p className="text-sm font-bold text-gray-900 leading-tight">{advanced.topReasons[0].reason}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{advanced.topReasons[0].count} appts</p>
+                            </>
+                          ) : <p className="text-sm text-gray-400">No reasons logged</p>}
+                        </div>
+
+                        {/* Monthly trend */}
+                        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-emerald-500">
+                          <div className="flex items-center gap-2 mb-2">
+                            {advanced.trend.changePercent === null || advanced.trend.changePercent === 0
+                              ? <Minus className="w-4 h-4 text-gray-400" />
+                              : advanced.trend.changePercent > 0
+                              ? <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                              : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                            <span className="text-xs text-gray-500">This Month</span>
+                          </div>
+                          <p className="text-xl font-bold text-gray-900">{advanced.trend.thisMonth}</p>
+                          <p className={`text-xs mt-0.5 font-medium ${
+                            advanced.trend.changePercent === null ? 'text-gray-400'
+                            : advanced.trend.changePercent > 0 ? 'text-emerald-600'
+                            : advanced.trend.changePercent < 0 ? 'text-red-500'
+                            : 'text-gray-400'
+                          }`}>
+                            {advanced.trend.changePercent === null
+                              ? 'No prior data'
+                              : advanced.trend.changePercent === 0
+                              ? 'Same as last month'
+                              : `${advanced.trend.changePercent > 0 ? '+' : ''}${advanced.trend.changePercent}% vs last month`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Heatmap grid + Top reasons side by side */}
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Heatmap */}
+                        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
+                          <h4 className="font-semibold text-gray-900 mb-1">Appointment Heatmap</h4>
+                          <p className="text-xs text-gray-400 mb-4">Non-cancelled appointments by day and time slot</p>
+                          {(() => {
+                            const maxCell = Math.max(...advanced.heatmap.map(h => h.count), 1);
+                            const cellMap = new Map(
+                              advanced.heatmap.map(h => [`${h.day}-${h.time}`, h.count])
+                            );
+                            return (
+                              <div className="overflow-x-auto">
+                                <table className="text-xs w-full">
+                                  <thead>
+                                    <tr>
+                                      <th className="w-14 py-1 pr-2 text-right text-gray-400 font-normal">Slot</th>
+                                      {DAYS.map(d => (
+                                        <th key={d.dow} className="py-1 px-1 text-center text-gray-500 font-medium w-12">{d.label}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {ALL_SLOTS.map(slot => (
+                                      <tr key={slot}>
+                                        <td className="pr-2 py-0.5 text-right text-gray-400 font-mono">{slot}</td>
+                                        {DAYS.map(d => {
+                                          const count = cellMap.get(`${d.dow}-${slot}`) ?? 0;
+                                          const intensity = count / maxCell;
+                                          return (
+                                            <td key={d.dow} className="px-1 py-0.5">
+                                              <div
+                                                className="w-full h-7 rounded flex items-center justify-center text-xs font-medium transition-colors"
+                                                style={{
+                                                  backgroundColor: count === 0
+                                                    ? '#f3f4f6'
+                                                    : `rgba(37,99,235,${0.12 + 0.88 * intensity})`,
+                                                  color: intensity > 0.55 ? '#fff' : intensity > 0 ? '#1e40af' : '#9ca3af',
+                                                }}
+                                                title={count > 0 ? `${d.label} ${slot}: ${count} appt${count !== 1 ? 's' : ''}` : undefined}
+                                              >
+                                                {count > 0 ? count : ''}
+                                              </div>
+                                            </td>
+                                          );
+                                        })}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                                {/* Legend */}
+                                <div className="flex items-center gap-2 mt-3 justify-end">
+                                  <span className="text-xs text-gray-400">Low</span>
+                                  {[0.12, 0.35, 0.55, 0.75, 1].map(a => (
+                                    <div key={a} className="w-5 h-4 rounded" style={{ backgroundColor: `rgba(37,99,235,${a})` }} />
+                                  ))}
+                                  <span className="text-xs text-gray-400">High</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Top reasons */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                          <h4 className="font-semibold text-gray-900 mb-1">Top Appointment Reasons</h4>
+                          <p className="text-xs text-gray-400 mb-4">Most frequently recorded</p>
+                          {advanced.topReasons.length === 0 ? (
+                            <p className="text-sm text-gray-400">No reasons have been logged yet.</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {advanced.topReasons.map((r, i) => {
+                                const maxCount = advanced.topReasons[0].count;
+                                const pct = Math.round((r.count / maxCount) * 100);
+                                return (
+                                  <div key={i}>
+                                    <div className="flex justify-between text-sm mb-1">
+                                      <span className="text-gray-700 truncate max-w-[160px]" title={r.reason}>{r.reason}</span>
+                                      <span className="font-semibold ml-2 shrink-0">{r.count}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                      <div className="h-1.5 rounded-full bg-rose-400" style={{ width: `${pct}%` }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
               </>
             ) : (
               <div className="card p-6 text-center text-gray-500">Failed to load analytics</div>
