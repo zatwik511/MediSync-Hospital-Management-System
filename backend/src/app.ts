@@ -16,6 +16,7 @@ import appointmentRoutes from './routes/appointmentRoutes';
 import auditRoutes from './routes/auditRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import doctorRoutes from './routes/doctorRoutes';
+import prescriptionRoutes from './routes/prescriptionRoutes';
 
 // Middleware
 import { authMiddleware } from './middleware/authMiddleware';
@@ -26,12 +27,13 @@ const app = express();
 
 // 1. CORS
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:5173',
-    'https://image-management-system-for-abc-iug9.onrender.com'
-  ],
+  origin: (origin, callback) => {
+    // Allow any localhost port in development, plus the production URL
+    const allowed = !origin
+      || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      || origin === 'https://image-management-system-for-abc-iug9.onrender.com';
+    callback(null, allowed ? origin : false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -78,6 +80,7 @@ app.use('/api/appointments', authMiddleware, appointmentRoutes);
 app.use('/api/audit', authMiddleware, auditRoutes);
 app.use('/api/notifications', authMiddleware, notificationRoutes);
 app.use('/api/doctors', authMiddleware, doctorRoutes);
+app.use('/api/prescriptions', authMiddleware, prescriptionRoutes);
 
 // 7. Global error handler
 app.use(errorHandler);

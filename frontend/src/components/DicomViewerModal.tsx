@@ -1,16 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { X, ZoomIn, ZoomOut, RotateCw, Maximize2 } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { X, ZoomIn, ZoomOut, RotateCw, Maximize2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import * as cornerstone from 'cornerstone-core';
-import * as cornerstoneWADOImageLoader from 'cornerstone-wado-image-loader';
-import * as dicomParser from 'dicom-parser';
-import { config } from '../config'; // ✅ IMPORT CONFIG
+import { config } from '../config';
+import { initCornerstone } from '../lib/cornerstone';
 
-cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
-cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
-
-cornerstoneWADOImageLoader.configure({
-  useWebWorkers: true,
-});
+initCornerstone();
 
 interface DicomViewerModalProps {
   isOpen: boolean;
@@ -27,6 +21,17 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const isPanning = useRef(false);
+  const lastPos = useRef({ x: 0, y: 0 });
+
+  // ESC key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -38,15 +43,17 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
 
     try {
       cornerstone.enable(element);
-
-      const fullUrl = `${config.apiUrl}${imageUrl}`; // ✅ FIXED: Use config instead of hardcoded localhost
-      const imageId = `wadouri:${fullUrl}`;
+      const imageId = `wadouri:${config.apiUrl}${imageUrl}`;
 
       cornerstone.loadImage(imageId)
         .then((image) => {
           cornerstone.displayImage(element, image);
-          cornerstone.resize(element, true);
-          setIsLoading(false);
+          // requestAnimationFrame ensures the flex container has a settled pixel
+          // height before Cornerstone measures it for fit-to-viewport
+          requestAnimationFrame(() => {
+            cornerstone.resize(element, true);
+            setIsLoading(false);
+          });
         })
         .catch((err) => {
           console.error('Error loading DICOM:', err);
@@ -55,11 +62,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
         });
 
       return () => {
-        try {
-          cornerstone.disable(element);
-        } catch (e) {
-          // Element might already be disabled
-        }
+        try { cornerstone.disable(element); } catch { /* already disabled */ }
       };
     } catch (err) {
       console.error('Error initializing viewer:', err);
@@ -68,109 +71,224 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
     }
   }, [isOpen, imageUrl]);
 
+  const getViewport = () => {
+    const element = viewerRef.current;
+    if (!element) return null;
+    try { return cornerstone.getViewport(element); } catch { return null; }
+  };
+
   const handleZoomIn = () => {
     const element = viewerRef.current;
-    if (!element) return;
-
-    const viewport = cornerstone.getViewport(element);
-    viewport.scale += 0.25;
-    cornerstone.setViewport(element, viewport);
+    const vp = getViewport();
+    if (!element || !vp) return;
+    vp.scale = Math.min(vp.scale + 0.25, 8);
+    cornerstone.setViewport(element, vp);
   };
 
   const handleZoomOut = () => {
     const element = viewerRef.current;
-    if (!element) return;
-
-    const viewport = cornerstone.getViewport(element);
-    viewport.scale -= 0.25;
-    cornerstone.setViewport(element, viewport);
+    const vp = getViewport();
+    if (!element || !vp) return;
+    vp.scale = Math.max(vp.scale - 0.25, 0.25);
+    cornerstone.setViewport(element, vp);
   };
 
   const handleRotate = () => {
     const element = viewerRef.current;
-    if (!element) return;
-
-    const viewport = cornerstone.getViewport(element);
-    viewport.rotation += 90;
-    cornerstone.setViewport(element, viewport);
+    const vp = getViewport();
+    if (!element || !vp) return;
+    vp.rotation = (vp.rotation + 90) % 360;
+    cornerstone.setViewport(element, vp);
   };
 
   const handleReset = () => {
     const element = viewerRef.current;
     if (!element) return;
-
-    cornerstone.reset(element);
+    try { cornerstone.reset(element); } catch { /* not ready */ }
   };
+
+  const handleWindowWidth = (delta: number) => {
+    const element = viewerRef.current;
+    const vp = getViewport();
+    if (!element || !vp) return;
+    vp.voi.windowWidth = Math.max(1, vp.voi.windowWidth + delta);
+    cornerstone.setViewport(element, vp);
+  };
+
+  const handleWindowCenter = (delta: number) => {
+    const element = viewerRef.current;
+    const vp = getViewport();
+    if (!element || !vp) return;
+    vp.voi.windowCenter += delta;
+    cornerstone.setViewport(element, vp);
+  };
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isPanning.current = true;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning.current) return;
+    const element = viewerRef.current;
+    const vp = getViewport();
+    if (!element || !vp) return;
+    const dx = e.clientX - lastPos.current.x;
+    const dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    vp.translation.x += dx / vp.scale;
+    vp.translation.y += dy / vp.scale;
+    cornerstone.setViewport(element, vp);
+  }, []);
+
+  const stopPan = useCallback(() => { isPanning.current = false; }, []);
 
   if (!isOpen) return null;
 
+  const toolBtn =
+    'flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors text-xs font-semibold';
+  const separator = 'w-px h-6 bg-gray-700 mx-1 self-end mb-1';
+  const groupLabel =
+    'text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1 text-center';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">DICOM Viewer</h2>
-            <p className="text-sm text-gray-600">{imageInfo.type} - {imageInfo.disease}</p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="flex flex-col w-full max-w-5xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-gray-900">
+
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-5 py-3.5 bg-gray-900 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 shrink-0">
+              <ImageIcon size={17} className="text-blue-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white leading-tight">DICOM Viewer</p>
+              <p className="text-xs mt-0.5 truncate">
+                <span className="text-blue-400 font-medium">{imageInfo.type}</span>
+                {imageInfo.disease && (
+                  <span className="text-gray-500"> · {imageInfo.disease}</span>
+                )}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors shrink-0 ml-4"
+            title="Close (Esc)"
           >
-            <X size={24} />
+            <X size={17} />
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 p-3 bg-gray-50 border-b border-gray-200">
-          <button
-            onClick={handleZoomIn}
-            className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            title="Zoom In"
-          >
-            <ZoomIn size={20} />
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            title="Zoom Out"
-          >
-            <ZoomOut size={20} />
-          </button>
-          <button
-            onClick={handleRotate}
-            className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            title="Rotate 90°"
-          >
-            <RotateCw size={20} />
-          </button>
-          <button
-            onClick={handleReset}
-            className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            title="Reset View"
-          >
-            <Maximize2 size={20} />
-          </button>
+        {/* ── Toolbar ────────────────────────────────────────── */}
+        <div className="flex items-end gap-0.5 px-4 py-2.5 bg-gray-800/70 border-b border-white/10 shrink-0 flex-wrap">
+
+          {/* Zoom */}
+          <div className="flex flex-col items-center gap-0.5">
+            <p className={groupLabel}>Zoom</p>
+            <div className="flex gap-0.5">
+              <button onClick={handleZoomIn}  className={toolBtn} title="Zoom in"><ZoomIn  size={14} /></button>
+              <button onClick={handleZoomOut} className={toolBtn} title="Zoom out"><ZoomOut size={14} /></button>
+            </div>
+          </div>
+
+          <div className={separator} />
+
+          {/* Contrast — Window Width */}
+          <div className="flex flex-col items-center gap-0.5">
+            <p className={groupLabel}>Contrast</p>
+            <div className="flex gap-0.5">
+              <button
+                onClick={() => handleWindowWidth(-100)}
+                className={`${toolBtn} text-violet-400 hover:text-violet-200 hover:bg-violet-900/40`}
+                title="Narrow window (sharper contrast)"
+              >
+                −W
+              </button>
+              <button
+                onClick={() => handleWindowWidth(100)}
+                className={`${toolBtn} text-violet-400 hover:text-violet-200 hover:bg-violet-900/40`}
+                title="Widen window (softer contrast)"
+              >
+                +W
+              </button>
+            </div>
+          </div>
+
+          <div className={separator} />
+
+          {/* Brightness — Window Level */}
+          <div className="flex flex-col items-center gap-0.5">
+            <p className={groupLabel}>Brightness</p>
+            <div className="flex gap-0.5">
+              <button
+                onClick={() => handleWindowCenter(-100)}
+                className={`${toolBtn} text-amber-400 hover:text-amber-200 hover:bg-amber-900/30`}
+                title="Lower window level (darker)"
+              >
+                −L
+              </button>
+              <button
+                onClick={() => handleWindowCenter(100)}
+                className={`${toolBtn} text-amber-400 hover:text-amber-200 hover:bg-amber-900/30`}
+                title="Raise window level (brighter)"
+              >
+                +L
+              </button>
+            </div>
+          </div>
+
+          <div className={separator} />
+
+          {/* Transform */}
+          <div className="flex flex-col items-center gap-0.5">
+            <p className={groupLabel}>Transform</p>
+            <div className="flex gap-0.5">
+              <button onClick={handleRotate} className={toolBtn} title="Rotate 90°"><RotateCw size={14} /></button>
+              <button onClick={handleReset}  className={toolBtn} title="Reset view"><Maximize2 size={14} /></button>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-gray-700 ml-auto self-end pb-0.5 hidden lg:block select-none">
+            Drag to pan · Esc to close
+          </p>
         </div>
 
-        {/* Viewer Area */}
-        <div className="flex-1 relative bg-black overflow-hidden">
+        {/* ── Viewer ─────────────────────────────────────────── */}
+        <div className="relative flex-1 min-h-0 bg-black overflow-hidden">
           <div
             ref={viewerRef}
-            className="w-full h-full"
-            style={{ minHeight: '400px' }}
+            className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={stopPan}
+            onMouseLeave={stopPan}
           />
+
+          {/* Loading overlay */}
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="text-white text-lg">Loading DICOM image...</div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+              <div className="w-11 h-11 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin mb-4" />
+              <p className="text-gray-400 text-sm tracking-wide">Loading DICOM image…</p>
             </div>
           )}
+
+          {/* Error overlay */}
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="text-red-500 text-lg">{error}</div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 px-6 text-center">
+              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-500/15 border border-red-500/30 mb-4">
+                <AlertCircle size={28} className="text-red-400" />
+              </div>
+              <p className="text-red-300 text-sm font-semibold">{error}</p>
+              <p className="text-gray-600 text-xs mt-1.5">Ensure the file is a valid DICOM (.dcm) file</p>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

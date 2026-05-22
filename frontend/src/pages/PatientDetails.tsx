@@ -2,9 +2,11 @@ import { useParams, Link } from 'react-router-dom';
 import { usePatient, useUpdateDiagnosis } from '../hooks/usePatients';
 import { useRecordTask, useCostReport } from '../hooks/useFinancial';
 import { usePatientAppointments } from '../hooks/useAppointments';
+import { usePatientPrescriptions } from '../hooks/usePrescriptions';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { PatientImageViewer } from '../components/PatientImageViewer';
 import { ImageUploader } from '../components/ImageUploader';
+import { PrescriptionSection } from '../components/PrescriptionSection';
 import { ArrowLeft, Pencil, Check, X, PlusCircle, FileDown } from 'lucide-react';
 import { useState } from 'react';
 
@@ -15,6 +17,7 @@ export function PatientDetails() {
   const recordTask = useRecordTask();
   const { data: costReport } = useCostReport(patientId!);
   const { data: appointments = [] } = usePatientAppointments(patientId!);
+  const { data: prescriptions = [] } = usePatientPrescriptions(patientId!);
 
   // Local cost state — starts null, gets set when a task is saved
   const [displayCost, setDisplayCost] = useState<number | null>(null);
@@ -294,6 +297,9 @@ export function PatientDetails() {
         </div>
       </div>
 
+      {/* Prescription & Medication Section */}
+      <PrescriptionSection patientId={patient.id} />
+
       {/* Image Upload Section */}
       <div className="bg-white rounded-lg shadow-md p-6 no-print">
         <ImageUploader patientId={patient.id} />
@@ -361,6 +367,48 @@ export function PatientDetails() {
             </table>
           ) : (
             <p style={{ fontSize: '13px', color: '#9ca3af' }}>No financial records.</p>
+          )}
+        </div>
+
+        {/* Prescriptions */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prescriptions & Medication</div>
+          {prescriptions.length > 0 ? prescriptions.map((rx, rxIdx) => (
+            <div key={rx.id} style={{ marginBottom: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ background: '#f9fafb', padding: '8px 12px', borderBottom: '1px solid #e5e7eb', fontSize: '12px', color: '#6b7280' }}>
+                <strong style={{ color: '#374151' }}>Prescription {rxIdx + 1}</strong>
+                {rx.prescribedByName && <> · {rx.prescribedByName}</>}
+                {' · '}{new Date(rx.prescribedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ background: '#f3f4f6' }}>
+                    {['Medicine', 'Dosage', 'Frequency', 'Duration', 'Instructions'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '6px 10px', fontWeight: 'bold', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rx.medications.map((med, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '6px 10px', fontWeight: 'bold' }}>{med.name}</td>
+                      <td style={{ padding: '6px 10px' }}>{med.dosage || '—'}</td>
+                      <td style={{ padding: '6px 10px' }}>{med.frequency || '—'}</td>
+                      <td style={{ padding: '6px 10px' }}>{med.duration || '—'}</td>
+                      <td style={{ padding: '6px 10px', color: '#6b7280', fontStyle: 'italic' }}>{med.instructions || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {rx.advice && (
+                <div style={{ padding: '8px 12px', background: '#eff6ff', borderTop: '1px solid #bfdbfe' }}>
+                  <strong style={{ fontSize: '11px', color: '#1e40af' }}>Doctor's Advice: </strong>
+                  <span style={{ fontSize: '12px', color: '#1e3a8a' }}>{rx.advice}</span>
+                </div>
+              )}
+            </div>
+          )) : (
+            <p style={{ fontSize: '13px', color: '#9ca3af' }}>No prescriptions on record.</p>
           )}
         </div>
 

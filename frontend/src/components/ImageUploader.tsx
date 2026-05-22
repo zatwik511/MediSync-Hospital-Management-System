@@ -23,12 +23,10 @@ export function ImageUploader({ patientId }: ImageUploaderProps) {
       const isValidImage = selectedFile.type.startsWith('image/');
       const fileName = selectedFile.name.toLowerCase();
       
-      // ✅ Check for all DICOM extensions: .dcm, .dicom, .dic
       const isDicom = fileName.endsWith('.dcm') ||
                      fileName.endsWith('.dicom') ||
                      fileName.endsWith('.dic') ||
-                     selectedFile.type === 'application/dicom' ||
-                     selectedFile.type === 'application/octet-stream';
+                     selectedFile.type === 'application/dicom';
 
       if (!isValidImage && !isDicom) {
         setError('Please select a valid image file or DICOM file (.dcm, .dicom, .dic)');

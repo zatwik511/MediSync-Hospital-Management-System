@@ -1,203 +1,248 @@
 import { useState } from 'react';
-import Viewer from 'react-viewer';
 import { usePatientImages, useDeleteImage } from '../hooks/useImages';
 import type { MedicalImage } from '../types';
 import { Trash2, Eye, Image as ImageIcon } from 'lucide-react';
 import { DicomViewerModal } from './DicomViewerModal';
-import { config } from '../config'; // ✅ IMPORT CONFIG
+import { ImageLightbox } from './ImageLightbox';
+import { config } from '../config';
 
 interface PatientImageViewerProps {
   patientId: string;
 }
 
+const TYPE_STYLES: Record<string, string> = {
+  MRI:   'bg-blue-100 text-blue-700',
+  CT:    'bg-teal-100 text-teal-700',
+  Xray:  'bg-slate-100 text-slate-600',
+  DICOM: 'bg-violet-100 text-violet-700',
+};
+
+const isDicomFile = (url: string) => /\.(dcm|dicom|dic)$/i.test(url);
+
 export function PatientImageViewer({ patientId }: PatientImageViewerProps) {
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [dicomViewerOpen, setDicomViewerOpen] = useState(false);
-  const [selectedDicomImage, setSelectedDicomImage] = useState<MedicalImage | null>(null);
+  const [viewerVisible, setViewerVisible]         = useState(false);
+  const [activeIndex, setActiveIndex]             = useState(0);
+  const [dicomViewerOpen, setDicomViewerOpen]     = useState(false);
+  const [selectedDicom, setSelectedDicom]         = useState<MedicalImage | null>(null);
 
   const { data: images, isLoading, error } = usePatientImages(patientId);
   const deleteImage = useDeleteImage();
 
-  // Helper function to check if file is DICOM
-  const isDicomFile = (imageUrl: string) => {
-    return /\.(dcm|dicom|dic)$/i.test(imageUrl);
-  };
-
-  const handleViewImage = (index: number) => {
+  const handleView = (index: number) => {
     const image = images?.[index];
-    if (image && isDicomFile(image.imageUrl || '')) {
-      // Open DICOM viewer for DICOM files
-      setSelectedDicomImage(image);
+    if (!image) return;
+
+    if (isDicomFile(image.imageUrl || '')) {
+      setSelectedDicom(image);
       setDicomViewerOpen(true);
     } else {
-      // For regular images, find the correct index in the filtered array
       const regularImages = images?.filter(img => !isDicomFile(img.imageUrl || '')) || [];
-      const regularImageIndex = regularImages.findIndex(img => img.id === image?.id);
-      setActiveIndex(regularImageIndex >= 0 ? regularImageIndex : 0);
+      const regularIndex  = regularImages.findIndex(img => img.id === image.id);
+      setActiveIndex(regularIndex >= 0 ? regularIndex : 0);
       setViewerVisible(true);
     }
   };
 
-  const handleDeleteImage = async (imageId: string, imageName: string) => {
-    if (window.confirm(`Are you sure you want to delete this image: ${imageName}?`)) {
-      try {
-        await deleteImage.mutateAsync(imageId);
-        alert('Image deleted successfully!');
-      } catch (err) {
-        alert('Failed to delete image');
-      }
+  const handleDelete = async (imageId: string, label: string) => {
+    if (!window.confirm(`Delete image: ${label}?`)) return;
+    try {
+      await deleteImage.mutateAsync(imageId);
+    } catch {
+      alert('Failed to delete image. Please try again.');
     }
   };
 
-  // Transform ONLY non-DICOM images for react-viewer
   const viewerImages = images
     ?.filter(img => !isDicomFile(img.imageUrl || ''))
-    .map((img) => ({
-      src: `${config.apiUrl}${img.imageUrl || ''}`, // ✅ FIXED: Use config
-      alt: `${img.type} - ${img.diseaseClassification}`,
-      downloadUrl: `${config.apiUrl}${img.imageUrl || ''}`, // ✅ FIXED: Use config
+    .map(img => ({
+      src:         `${config.apiUrl}${img.imageUrl || ''}`,
+      alt:         `${img.type} – ${img.diseaseClassification}`,
+      downloadUrl: `${config.apiUrl}${img.imageUrl || ''}`,
     })) || [];
 
+  // ── Loading skeleton ────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-600">Loading images...</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden animate-pulse">
+            <div className="h-44 bg-gray-200" />
+            <div className="p-4 space-y-2.5">
+              <div className="h-4 bg-gray-200 rounded-full w-16" />
+              <div className="h-4 bg-gray-200 rounded-full w-3/4" />
+              <div className="h-3 bg-gray-100 rounded-full w-1/2" />
+              <div className="h-8 bg-gray-100 rounded-lg mt-3" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
+  // ── Error ───────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        Error loading images: {error.message}
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-50 border border-red-200 flex items-center justify-center mb-3">
+          <ImageIcon size={22} className="text-red-400" />
+        </div>
+        <p className="text-red-600 text-sm font-medium">Failed to load images</p>
+        <p className="text-gray-400 text-xs mt-1">{error.message}</p>
       </div>
     );
   }
 
+  // ── Empty state ─────────────────────────────────────────────
   if (!images || images.length === 0) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-600">
-        <ImageIcon className="mx-auto mb-2 text-gray-400" size={48} />
-        No medical images uploaded yet
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+          <ImageIcon size={28} className="text-gray-400" />
+        </div>
+        <p className="text-gray-700 font-medium">No medical images yet</p>
+        <p className="text-gray-400 text-sm mt-1">Upload images using the form above</p>
       </div>
     );
   }
 
+  // ── Gallery ─────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">
-        Medical Images ({images.length})
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-gray-900">
+          Medical Images
+          <span className="ml-2 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            {images.length}
+          </span>
+        </h3>
+      </div>
 
-      {/* Image Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {images.map((image, index) => {
           const isDicom = isDicomFile(image.imageUrl || '');
+          const typeStyle = TYPE_STYLES[image.type] ?? 'bg-gray-100 text-gray-600';
+
           return (
-            <div key={image.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-              {/* Image Preview */}
-              {isDicom ? (
-                // DICOM file placeholder - clickable
-                <div
-                  onClick={() => handleViewImage(index)}
-                  className="h-48 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:from-purple-200 hover:to-blue-200 transition-colors mb-3"
-                >
-                  <ImageIcon size={48} className="text-purple-600 mb-2" />
-                  <p className="text-purple-700 font-semibold">DICOM File</p>
-                  <p className="text-sm text-purple-600">Click to view</p>
-                </div>
-              ) : (
-                // Regular image
-                <img
-                  src={`${config.apiUrl}${image.imageUrl || ''}`} // ✅ FIXED: Use config
-                  alt={image.type}
-                  className="h-48 w-full object-cover rounded-lg mb-3 cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => handleViewImage(index)}
-                  onError={(e) => {
-                    e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><text x="50%" y="50%" text-anchor="middle">Image Not Found</text></svg>';
-                  }}
-                />
-              )}
+            <div
+              key={image.id}
+              className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              {/* ── Image / DICOM preview ── */}
+              <div className="relative h-44 overflow-hidden cursor-pointer" onClick={() => handleView(index)}>
 
-              <div className="flex items-center gap-2 mb-2">
-                <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                  {image.type}
-                </span>
-                {isDicom && (
-                  <span className="inline-block px-2 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded">
-                    DICOM
-                  </span>
+                {isDicom ? (
+                  /* DICOM dark placeholder */
+                  <div className="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center">
+                    <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center mb-2.5">
+                      <ImageIcon size={26} className="text-violet-400" />
+                    </div>
+                    <p className="text-[11px] font-semibold text-violet-300 tracking-widest uppercase">DICOM File</p>
+                  </div>
+                ) : (
+                  <img
+                    src={`${config.apiUrl}${image.imageUrl || ''}`}
+                    alt={image.type}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement!.classList.add('bg-gray-100');
+                    }}
+                  />
                 )}
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <div className="flex items-center gap-2 bg-white/20 border border-white/30 text-white text-sm font-medium px-4 py-2 rounded-full backdrop-blur-sm">
+                    <Eye size={14} />
+                    View
+                  </div>
+                </div>
               </div>
 
-              {/* Image Info */}
-              <div className="space-y-1 text-sm mb-3">
-                <p className="text-gray-700">
-                  <span className="font-medium">Disease:</span>{' '}
-                  {image.diseaseClassification || 'Not classified'}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Uploaded:</span>{' '}
-                  {new Date(image.uploadedAt).toLocaleDateString()} at{' '}
-                  {new Date(image.uploadedAt).toLocaleTimeString()}
-                </p>
-                <p className="text-gray-600 text-xs truncate" title={image.uploadedBy}>
-                  <span className="font-medium">Uploaded by:</span>{' '}
-                  {image.uploadedBy}
-                </p>
-              </div>
+              {/* ── Info ── */}
+              <div className="p-3.5">
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleViewImage(index)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                {/* Badges */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${typeStyle}`}>
+                    {image.type}
+                  </span>
+                  {isDicom && (
+                    <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                      DICOM
+                    </span>
+                  )}
+                </div>
+
+                {/* Disease */}
+                <p
+                  className="text-sm font-medium text-gray-900 truncate mb-2"
+                  title={image.diseaseClassification || undefined}
                 >
-                  <Eye size={16} />
-                  View
-                </button>
-                <button
-                  onClick={() => handleDeleteImage(image.id, `${image.type} - ${image.diseaseClassification}`)}
-                  disabled={deleteImage.isPending}
-                  className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
+                  {image.diseaseClassification || (
+                    <span className="text-gray-400 font-normal italic">No classification</span>
+                  )}
+                </p>
+
+                {/* Date / uploader */}
+                <div className="space-y-0.5 mb-3">
+                  <p className="text-xs text-gray-400">
+                    {new Date(image.uploadedAt).toLocaleDateString('en-GB', {
+                      day: 'numeric', month: 'short', year: 'numeric',
+                    })}{' '}
+                    ·{' '}
+                    {new Date(image.uploadedAt).toLocaleTimeString([], {
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate" title={image.uploadedBy}>
+                    By:{' '}
+                    <span className="text-gray-600">{image.uploadedBy}</span>
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleView(index)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200 transition-colors text-xs font-semibold"
+                  >
+                    <Eye size={13} />
+                    View
+                  </button>
+                  <button
+                    onClick={() => handleDelete(image.id, `${image.type} – ${image.diseaseClassification}`)}
+                    disabled={deleteImage.isPending}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 active:bg-red-200 transition-colors text-xs font-semibold disabled:opacity-40"
+                  >
+                    <Trash2 size={13} />
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Regular Image Viewer Modal */}
-      <Viewer
-        visible={viewerVisible}
-        onClose={() => setViewerVisible(false)}
-        images={viewerImages}
-        activeIndex={activeIndex}
-        zoomable
-        rotatable
-        scalable
-        downloadable
-        drag
-        attribute={false}
-        zoomSpeed={0.1}
-      />
+      {/* Regular image lightbox */}
+      {viewerVisible && (
+        <ImageLightbox
+          images={viewerImages}
+          initialIndex={activeIndex}
+          onClose={() => setViewerVisible(false)}
+        />
+      )}
 
-      {/* DICOM Viewer Modal */}
-      {selectedDicomImage && (
+      {/* DICOM viewer modal */}
+      {selectedDicom && (
         <DicomViewerModal
           isOpen={dicomViewerOpen}
-          onClose={() => {
-            setDicomViewerOpen(false);
-            setSelectedDicomImage(null);
-          }}
-          imageUrl={selectedDicomImage.imageUrl || ''}
+          onClose={() => { setDicomViewerOpen(false); setSelectedDicom(null); }}
+          imageUrl={selectedDicom.imageUrl || ''}
           imageInfo={{
-            type: selectedDicomImage.type,
-            disease: selectedDicomImage.diseaseClassification || 'Unknown',
+            type:    selectedDicom.type,
+            disease: selectedDicom.diseaseClassification || 'Unknown',
           }}
         />
       )}

@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { pool } from '../database/db';
 import { MedicalImage, UploadImageDTO } from '../models/types';
 import { auditService } from './AuditService';
@@ -76,7 +78,22 @@ export class ImageService {
   }
 
   async deleteImage(imageID: string, staffId = ''): Promise<void> {
+    const fileResult = await pool.query(
+      `SELECT image_url FROM medical_images WHERE id = $1`,
+      [imageID]
+    );
+    const imageUrl: string | undefined = fileResult.rows[0]?.image_url;
+
     await pool.query(`DELETE FROM medical_images WHERE id = $1`, [imageID]);
+
+    if (imageUrl) {
+      const relativePath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
+      const absolutePath = path.join(process.cwd(), relativePath);
+      fs.unlink(absolutePath, (err) => {
+        if (err) console.error(`Could not delete file ${absolutePath}:`, err.message);
+      });
+    }
+
     await auditService.logAction({
       staffId,
       action: 'DELETE',
