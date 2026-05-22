@@ -61,13 +61,31 @@ export class PatientService {
   async deletePatient(patientID: string, staffId = ''): Promise<void> {
     const patient = await pool.query(`SELECT name FROM patients WHERE id = $1`, [patientID]);
     const name = patient.rows[0]?.name || patientID;
+
+    // Warn about cascade-deleted related records before deletion
+    const [imgRes, taskRes, apptRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*) FROM medical_images WHERE patient_id = $1`, [patientID]),
+      pool.query(`SELECT COUNT(*) FROM tasks          WHERE patient_id = $1`, [patientID]),
+      pool.query(`SELECT COUNT(*) FROM appointments   WHERE patient_id = $1`, [patientID]),
+    ]);
+    const images = parseInt(imgRes.rows[0].count,  10);
+    const tasks  = parseInt(taskRes.rows[0].count, 10);
+    const appts  = parseInt(apptRes.rows[0].count, 10);
+
+    if (images + tasks + appts > 0) {
+      console.warn(
+        `[PatientService] Deleting patient "${name}" (${patientID}) will cascade-delete: ` +
+        `${images} image(s), ${tasks} task(s), ${appts} appointment(s).`
+      );
+    }
+
     await pool.query(`DELETE FROM patients WHERE id = $1`, [patientID]);
     await auditService.logAction({
       staffId,
       action: 'DELETE',
       entityType: 'patient',
       entityId: patientID,
-      description: `Deleted patient record for ${name}`,
+      description: `Deleted patient record for ${name} (cascaded: ${images} images, ${tasks} tasks, ${appts} appointments)`,
     });
   }
 
