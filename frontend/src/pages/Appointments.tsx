@@ -44,7 +44,9 @@ export function Appointments() {
   const [bookTime, setBookTime] = useState('');
   const [bookType, setBookType] = useState('In-Person');
   const [bookReason, setBookReason] = useState('');
-  const [bookError, setBookError] = useState('');
+  const [bookErrors, setBookErrors] = useState({ patient: '', doctor: '', date: '', time: '' });
+  const [bookApiError, setBookApiError] = useState('');
+  const [bookSubmitted, setBookSubmitted] = useState(false);
 
   // Reschedule modal state
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -77,11 +79,20 @@ export function Appointments() {
   }) || [];
 
   const handleBook = async () => {
-    setBookError('');
-    if (!bookPatientID || !bookDoctorID || !bookDate || !bookTime) {
-      setBookError('Please fill in all required fields and select a time slot');
-      return;
-    }
+    setBookSubmitted(true);
+    setBookApiError('');
+
+    const today = new Date().toISOString().split('T')[0];
+    const errs = {
+      patient: !bookPatientID ? 'Please select a patient' : '',
+      doctor:  !bookDoctorID  ? 'Please select a doctor'  : '',
+      date:    !bookDate      ? 'Please select a date'
+               : bookDate < today ? 'Date cannot be in the past' : '',
+      time:    !bookTime      ? 'Please select a time slot' : '',
+    };
+    setBookErrors(errs);
+    if (Object.values(errs).some(Boolean)) return;
+
     try {
       await createAppointment.mutateAsync({
         patientID: bookPatientID,
@@ -94,7 +105,7 @@ export function Appointments() {
       setShowBookModal(false);
       resetBookForm();
     } catch (err: any) {
-      setBookError(err.message || 'Failed to book appointment');
+      setBookApiError(err.message || 'Failed to book appointment');
     }
   };
 
@@ -138,7 +149,9 @@ export function Appointments() {
     setBookTime('');
     setBookType('In-Person');
     setBookReason('');
-    setBookError('');
+    setBookErrors({ patient: '', doctor: '', date: '', time: '' });
+    setBookApiError('');
+    setBookSubmitted(false);
   };
 
   const handleExportCsv = () => {
@@ -339,13 +352,14 @@ export function Appointments() {
                 <select
                   value={bookPatientID}
                   onChange={e => setBookPatientID(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.patient ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                 >
                   <option value="">Select a patient</option>
                   {patients?.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                {bookSubmitted && bookErrors.patient && <p className="text-red-500 text-xs mt-1">{bookErrors.patient}</p>}
               </div>
 
               <div>
@@ -353,13 +367,14 @@ export function Appointments() {
                 <select
                   value={bookDoctorID}
                   onChange={e => { setBookDoctorID(e.target.value); setBookTime(''); }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.doctor ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                 >
                   <option value="">Select a doctor</option>
                   {doctors?.map(d => (
                     <option key={d.id} value={d.id}>{d.name} — {d.specialty}</option>
                   ))}
                 </select>
+                {bookSubmitted && bookErrors.doctor && <p className="text-red-500 text-xs mt-1">{bookErrors.doctor}</p>}
               </div>
 
               <div>
@@ -369,8 +384,9 @@ export function Appointments() {
                   value={bookDate}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={e => { setBookDate(e.target.value); setBookTime(''); }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.date ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                 />
+                {bookSubmitted && bookErrors.date && <p className="text-red-500 text-xs mt-1">{bookErrors.date}</p>}
               </div>
 
               {bookDoctorID && bookDate && (
@@ -398,7 +414,12 @@ export function Appointments() {
                       );
                     })}
                   </div>
+                  {bookSubmitted && bookErrors.time && <p className="text-red-500 text-xs mt-1">{bookErrors.time}</p>}
                 </div>
+              )}
+              {/* Show time error even when doctor/date not yet chosen */}
+              {bookSubmitted && bookErrors.time && (!bookDoctorID || !bookDate) && (
+                <p className="text-red-500 text-xs -mt-2">{bookErrors.time}</p>
               )}
 
               <div>
@@ -425,7 +446,7 @@ export function Appointments() {
                 />
               </div>
 
-              {bookError && <p className="text-red-600 text-xs">{bookError}</p>}
+              {bookApiError && <p className="text-red-600 text-xs">{bookApiError}</p>}
 
               <div className="flex gap-3 pt-2">
                 <button

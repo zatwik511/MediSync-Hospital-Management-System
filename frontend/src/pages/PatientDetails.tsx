@@ -27,7 +27,8 @@ export function PatientDetails() {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [taskDescription, setTaskDescription] = useState('');
   const [taskCost, setTaskCost] = useState('');
-  const [taskError, setTaskError] = useState('');
+  const [taskErrors, setTaskErrors] = useState({ description: '', cost: '' });
+  const [taskSubmitted, setTaskSubmitted] = useState(false);
 
   const handleEditClick = () => {
     setDiagnosisInput(patient?.diagnosis || '');
@@ -46,25 +47,27 @@ export function PatientDetails() {
   };
 
   const handleSaveTask = async () => {
-    setTaskError('');
-    if (!taskDescription.trim()) {
-      setTaskError('Description is required');
-      return;
-    }
+    setTaskSubmitted(true);
+
     const costValue = parseFloat(taskCost);
-    if (isNaN(costValue) || costValue < 0) {
-      setTaskError('Please enter a valid cost (0 or more)');
-      return;
-    }
+    const errs = {
+      description: !taskDescription.trim() ? 'Description is required' : '',
+      cost: taskCost === '' ? 'Cost is required'
+            : isNaN(costValue) || costValue <= 0 ? 'Cost must be a positive number' : '',
+    };
+    setTaskErrors(errs);
+    if (Object.values(errs).some(Boolean)) return;
+
     await recordTask.mutateAsync({
       patientID: patientId!,
       description: taskDescription.trim(),
       cost: costValue,
     });
-    // Instantly update displayed cost without waiting for a refetch
     setDisplayCost(prev => (prev ?? Number(patient?.totalCost ?? 0)) + costValue);
     setTaskDescription('');
     setTaskCost('');
+    setTaskErrors({ description: '', cost: '' });
+    setTaskSubmitted(false);
     setIsAddingTask(false);
   };
 
@@ -72,7 +75,8 @@ export function PatientDetails() {
     setIsAddingTask(false);
     setTaskDescription('');
     setTaskCost('');
-    setTaskError('');
+    setTaskErrors({ description: '', cost: '' });
+    setTaskSubmitted(false);
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -235,31 +239,34 @@ export function PatientDetails() {
             <h3 className="text-sm font-medium text-gray-700 mb-3">New Task / Charge</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Description</label>
+                <label className="block text-xs text-gray-600 mb-1">Description *</label>
                 <input
                   type="text"
                   value={taskDescription}
                   onChange={(e) => setTaskDescription(e.target.value)}
                   placeholder="e.g. MRI Scan, Consultation, Blood Test"
                   autoFocus
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${taskSubmitted && taskErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                 />
+                {taskSubmitted && taskErrors.description && (
+                  <p className="text-red-500 text-xs mt-1">{taskErrors.description}</p>
+                )}
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Cost (£)</label>
+                <label className="block text-xs text-gray-600 mb-1">Cost (£) *</label>
                 <input
                   type="number"
                   value={taskCost}
                   onChange={(e) => setTaskCost(e.target.value)}
                   placeholder="0.00"
-                  min="0"
+                  min="0.01"
                   step="0.01"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${taskSubmitted && taskErrors.cost ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                 />
+                {taskSubmitted && taskErrors.cost && (
+                  <p className="text-red-500 text-xs mt-1">{taskErrors.cost}</p>
+                )}
               </div>
-              {taskError && (
-                <p className="text-red-600 text-xs">{taskError}</p>
-              )}
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleSaveTask}

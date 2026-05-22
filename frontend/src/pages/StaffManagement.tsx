@@ -19,6 +19,8 @@ export function StaffManagement() {
     role: 'doctor' as 'radiologist' | 'doctor' | 'admin' | 'receptionist',
     specialization: '',
   });
+  const [formErrors, setFormErrors] = useState({ name: '', role: '' });
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
   const [newPin, setNewPin] = useState('');
@@ -27,9 +29,20 @@ export function StaffManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormSubmitted(true);
+
+    const errs = {
+      name: !formData.name.trim() ? 'Name is required' : '',
+      role: !formData.role        ? 'Role is required'  : '',
+    };
+    setFormErrors(errs);
+    if (Object.values(errs).some(Boolean)) return;
+
     try {
       await createStaff.mutateAsync(formData);
       setFormData({ name: '', address: '', role: 'doctor', specialization: '' });
+      setFormErrors({ name: '', role: '' });
+      setFormSubmitted(false);
     } catch (error) {
       console.error('Failed to create staff:', error);
     }
@@ -76,20 +89,21 @@ export function StaffManagement() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="input-field"
-                  required
+                  className={`input-field${formSubmitted && formErrors.name ? ' border-red-500 focus:ring-red-500' : ''}`}
                 />
+                {formSubmitted && formErrors.name && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
+                )}
               </div>
 
               <div className="form-group">
-                <label htmlFor="address" className="block text-sm font-medium mb-2">Address *</label>
+                <label htmlFor="address" className="block text-sm font-medium mb-2">Address</label>
                 <input
                   id="address"
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="input-field"
-                  required
                 />
               </div>
 
@@ -104,13 +118,16 @@ export function StaffManagement() {
                       role: e.target.value as 'radiologist' | 'doctor' | 'admin' | 'receptionist',
                     })
                   }
-                  className="input-field"
+                  className={`input-field${formSubmitted && formErrors.role ? ' border-red-500 focus:ring-red-500' : ''}`}
                 >
                   <option value="doctor">Doctor</option>
                   <option value="receptionist">Receptionist</option>
                   <option value="radiologist">Radiologist</option>
                   <option value="admin">Admin</option>
                 </select>
+                {formSubmitted && formErrors.role && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.role}</p>
+                )}
               </div>
 
               <div className="form-group">
