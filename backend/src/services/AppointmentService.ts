@@ -1,5 +1,6 @@
 import { pool } from '../database/db';
 import { auditService } from './AuditService';
+import { notificationService } from './NotificationService';
 
 export interface Appointment {
   id: string;
@@ -72,6 +73,15 @@ export class AppointmentService {
       entityId: appt.id,
       description: `Booked ${appt.type} appointment on ${appt.date} at ${appt.time}`,
     });
+
+    const patientRow = await pool.query(`SELECT name FROM patients WHERE id = $1`, [data.patientID]);
+    const patientName = patientRow.rows[0]?.name || 'A patient';
+    notificationService.notifyDoctor(
+      data.doctorID,
+      `New appointment: ${patientName} on ${appt.date} at ${appt.time}`,
+      'info', 'appointment', appt.id
+    );
+
     return appt;
   }
 
@@ -162,6 +172,8 @@ export class AppointmentService {
   }
 
   async cancelAppointment(appointmentID: string, staffId = ''): Promise<void> {
+    const existing = await this.getAppointment(appointmentID);
+
     await pool.query(`UPDATE appointments SET status = 'Cancelled' WHERE id = $1`, [appointmentID]);
     await auditService.logAction({
       staffId,
@@ -170,6 +182,16 @@ export class AppointmentService {
       entityId: appointmentID,
       description: `Cancelled appointment ${appointmentID}`,
     });
+
+    if (existing) {
+      const patientRow = await pool.query(`SELECT name FROM patients WHERE id = $1`, [existing.patientID]);
+      const patientName = patientRow.rows[0]?.name || 'A patient';
+      notificationService.notifyDoctor(
+        existing.doctorID,
+        `Appointment cancelled: ${patientName} on ${existing.date} at ${existing.time}`,
+        'warning', 'appointment', appointmentID
+      );
+    }
   }
 
   async listDoctors(): Promise<Doctor[]> {

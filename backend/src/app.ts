@@ -14,6 +14,7 @@ import patientAppointmentRoutes from './routes/patientAppointmentRoutes';
 import patientDataRoutes from './routes/patientDataRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import auditRoutes from './routes/auditRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 
 // Middleware
 import { authMiddleware } from './middleware/authMiddleware';
@@ -74,6 +75,7 @@ app.use('/api/financial', authMiddleware, financialRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/appointments', authMiddleware, appointmentRoutes);
 app.use('/api/audit', authMiddleware, auditRoutes);
+app.use('/api/notifications', authMiddleware, notificationRoutes);
 
 // 7. Global error handler
 app.use(errorHandler);

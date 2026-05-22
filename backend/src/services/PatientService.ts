@@ -1,6 +1,7 @@
 import { pool } from '../database/db';
 import { Patient, CreatePatientDTO } from '../models/types';
 import { auditService } from './AuditService';
+import { notificationService } from './NotificationService';
 
 export class PatientService {
 
@@ -20,6 +21,12 @@ export class PatientService {
       entityId: patient.id,
       description: `Created patient record for ${name}`,
     });
+
+    notificationService.notifyAllAdmins(
+      `New patient registered: ${name}`,
+      'success', 'patient', patient.id
+    );
+
     return patient;
   }
 
