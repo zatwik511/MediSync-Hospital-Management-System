@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Users, Calendar, UserCog, Image, Wallet, ShieldCheck } from 'lucide-react';
 import { usePatients } from '../../hooks/usePatients';
-import { useAppointments } from '../../hooks/useAppointments';
+import { useAppointments, useCancelAppointment } from '../../hooks/useAppointments';
 import { useStaff } from '../../hooks/useStaff';
 import { useTotalImageCount } from '../../hooks/useImages';
 import { useAuditLogs } from '../../hooks/useAudit';
 import { formatRelativeTime } from '../../utils/time';
+import { ScheduleSection } from './ScheduleSection';
 import type { AuthUser } from '../../hooks/useAuth';
 
 const ACTION_COLOUR: Record<string, string> = {
@@ -40,15 +41,34 @@ function StatCard({ icon, label, value, colour, to }: StatCardProps) {
 }
 
 export function AdminDashboard({ user }: { user: AuthUser }) {
-  const { data: patients = [] }     = usePatients();
-  const { data: appointments = [] } = useAppointments();
-  const { data: staff = [] }        = useStaff();
-  const { data: totalImages = 0 }   = useTotalImageCount();
-  const { data: auditLogs = [] }    = useAuditLogs();
+  const { data: patients = [] }         = usePatients();
+  const { data: appointments = [], isLoading } = useAppointments();
+  const { data: staff = [] }            = useStaff();
+  const { data: totalImages = 0 }       = useTotalImageCount();
+  const { data: auditLogs = [] }        = useAuditLogs();
+  const cancelMutation                  = useCancelAppointment();
 
-  const totalRevenue   = patients.reduce((sum, p) => sum + Number(p.totalCost), 0);
-  const totalActive    = appointments.filter(a => a.status !== 'Cancelled').length;
-  const recentAudit    = [...auditLogs].slice(0, 5);
+  const cancellingId = cancelMutation.isPending ? (cancelMutation.variables ?? null) : null;
+
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = tomorrowDate.toISOString().split('T')[0];
+
+  const todayLabel    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const tomorrowLabel = tomorrowDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const todaySchedule = appointments
+    .filter(a => a.date === today && a.status !== 'Cancelled')
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  const tomorrowSchedule = appointments
+    .filter(a => a.date === tomorrow && a.status !== 'Cancelled')
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  const totalRevenue = patients.reduce((sum, p) => sum + Number(p.totalCost), 0);
+  const totalActive  = appointments.filter(a => a.status !== 'Cancelled').length;
+  const recentAudit  = [...auditLogs].slice(0, 5);
 
   const lastLoginIso  = localStorage.getItem('lastLogin');
   const lastLoginText = lastLoginIso ? formatRelativeTime(lastLoginIso) : null;
@@ -67,40 +87,35 @@ export function AdminDashboard({ user }: { user: AuthUser }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          <StatCard
-            icon={<Users size={24} />}
-            label="Total Patients"
-            value={patients.length}
-            colour="bg-blue-100 text-blue-600"
-            to="/patients"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <StatCard icon={<Users size={24} />}   label="Total Patients"    value={patients.length}            colour="bg-blue-100 text-blue-600"   to="/patients" />
+          <StatCard icon={<Calendar size={24} />} label="Total Appointments" value={totalActive}               colour="bg-indigo-100 text-indigo-600" to="/appointments" />
+          <StatCard icon={<UserCog size={24} />}  label="Total Staff"        value={staff.length}               colour="bg-teal-100 text-teal-600"   to="/staff" />
+          <StatCard icon={<Image size={24} />}    label="Medical Images"     value={totalImages}                colour="bg-orange-100 text-orange-600" to="/images" />
+          <StatCard icon={<Wallet size={24} />}   label="Total Revenue"      value={`£${totalRevenue.toFixed(2)}`} colour="bg-green-100 text-green-600" />
+        </div>
+
+        {/* Today's Schedule + Upcoming Tomorrow */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <ScheduleSection
+            title="Today's Schedule"
+            dateLabel={todayLabel}
+            appointments={todaySchedule}
+            patients={patients}
+            onCancel={id => cancelMutation.mutate(id)}
+            cancellingId={cancellingId}
+            isLoading={isLoading}
+            emptyMessage="No appointments scheduled for today."
           />
-          <StatCard
-            icon={<Calendar size={24} />}
-            label="Total Appointments"
-            value={totalActive}
-            colour="bg-indigo-100 text-indigo-600"
-            to="/appointments"
-          />
-          <StatCard
-            icon={<UserCog size={24} />}
-            label="Total Staff"
-            value={staff.length}
-            colour="bg-teal-100 text-teal-600"
-            to="/staff"
-          />
-          <StatCard
-            icon={<Image size={24} />}
-            label="Medical Images"
-            value={totalImages}
-            colour="bg-orange-100 text-orange-600"
-            to="/images"
-          />
-          <StatCard
-            icon={<Wallet size={24} />}
-            label="Total Revenue"
-            value={`£${totalRevenue.toFixed(2)}`}
-            colour="bg-green-100 text-green-600"
+          <ScheduleSection
+            title="Upcoming Tomorrow"
+            dateLabel={tomorrowLabel}
+            appointments={tomorrowSchedule}
+            patients={patients}
+            onCancel={id => cancelMutation.mutate(id)}
+            cancellingId={cancellingId}
+            isLoading={isLoading}
+            emptyMessage="No appointments scheduled for tomorrow."
           />
         </div>
 

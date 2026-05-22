@@ -3,9 +3,17 @@ import { appointmentService } from '../services/AppointmentService';
 
 const router = express.Router();
 
-// GET /api/appointments
+// GET /api/appointments          — returns all (unpaginated, used by dashboards)
+// GET /api/appointments?page=1&limit=20&search= — returns paginated
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const { page, limit, search = '' } = req.query as Record<string, string>;
+    if (page) {
+      const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
+      const limitNum = Math.min(100, parseInt(limit || '20', 10) || 20);
+      const result = await appointmentService.listAppointmentsPaginated(pageNum, limitNum, search, req.staffID);
+      return res.json({ success: true, data: result });
+    }
     const appointments = await appointmentService.listAppointments(req.staffID);
     res.json({ success: true, data: appointments });
   } catch (error: any) {

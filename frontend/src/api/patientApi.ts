@@ -4,6 +4,7 @@ import type {
   CreatePatientDTO,
   UpdatePatientDTO,
   APIResponse,
+  PaginatedResponse,
 } from '../types';
 
 export const patientApi = {
@@ -26,6 +27,16 @@ export const patientApi = {
       throw new Error(response.data.error || 'Failed to fetch patients');
     }
     return response.data.data || [];
+  },
+
+  // Get paginated patients with optional search
+  async listPatientsPaginated(page: number, limit = 20, search = ''): Promise<PaginatedResponse<Patient>> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), search });
+    const response = await apiClient.get<APIResponse<PaginatedResponse<Patient>>>(`/patients?${params}`);
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch patients');
+    }
+    return response.data.data!;
   },
 
   // Get single patient by ID

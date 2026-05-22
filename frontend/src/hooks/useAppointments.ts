@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { appointmentApi } from '../api/appointmentApi';
 import type { CreateAppointmentDTO } from '../types/appointments';
 
@@ -48,6 +48,16 @@ export function useTotalAppointmentCount() {
     queryFn: () => appointmentApi.getTotalAppointmentCount(),
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 5,
+  });
+}
+
+// Paginated hook — for the appointments page only
+export function usePaginatedAppointments(page: number, search: string) {
+  return useQuery({
+    queryKey: ['appointments', 'paginated', page, search],
+    queryFn: () => appointmentApi.listAppointmentsPaginated(page, 20, search),
+    staleTime: 1000 * 60 * 1,
+    placeholderData: keepPreviousData,
   });
 }
 

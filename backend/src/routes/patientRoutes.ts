@@ -31,9 +31,17 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/patients
+// GET /api/patients          — returns all (unpaginated)
+// GET /api/patients?page=1&limit=20&search= — returns paginated
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const { page, limit, search = '' } = req.query as Record<string, string>;
+    if (page) {
+      const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
+      const limitNum = Math.min(100, parseInt(limit || '20', 10) || 20);
+      const result = await patientService.listPatientsPaginated(pageNum, limitNum, search, req.staffID);
+      return res.json({ success: true, data: result });
+    }
     const patients = await patientService.listPatients(req.staffID);
     res.json({ success: true, data: patients });
   } catch (error: any) {

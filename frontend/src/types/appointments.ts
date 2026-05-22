@@ -28,3 +28,11 @@ export interface CreateAppointmentDTO {
   type?: string;
   reason?: string;
 }
+
+export interface AppointmentPage {
+  data: Appointment[];
+  total: number;
+  page: number;
+  totalPages: number;
+  counts: { active: number; confirmed: number; cancelled: number };
+}

@@ -58,6 +58,40 @@ export class PatientService {
     return result.rows as Patient[];
   }
 
+  async listPatientsPaginated(
+    page: number,
+    limit: number,
+    search: string,
+    staffId = ''
+  ): Promise<{ data: Patient[]; total: number; page: number; totalPages: number }> {
+    const offset = (page - 1) * limit;
+    const [countResult, dataResult] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) FROM patients
+         WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR address ILIKE '%' || $1 || '%')`,
+        [search]
+      ),
+      pool.query(
+        `SELECT * FROM patients
+         WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR address ILIKE '%' || $1 || '%')
+         ORDER BY "createdAt" DESC
+         LIMIT $2 OFFSET $3`,
+        [search, limit, offset]
+      ),
+    ]);
+    const total = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    if (staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'patient',
+        description: `Listed patients page ${page}${search ? ` (search: "${search}")` : ''} — ${total} total`,
+      });
+    }
+    return { data: dataResult.rows as Patient[], total, page, totalPages };
+  }
+
   async deletePatient(patientID: string, staffId = ''): Promise<void> {
     const patient = await pool.query(`SELECT name FROM patients WHERE id = $1`, [patientID]);
     const name = patient.rows[0]?.name || patientID;

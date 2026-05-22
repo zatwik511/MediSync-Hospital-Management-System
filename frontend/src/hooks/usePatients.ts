@@ -2,6 +2,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
+  keepPreviousData,
 } from '@tanstack/react-query';
 import type {
   
@@ -110,6 +111,16 @@ export function useDeletePatient() {
     onError: (error) => {
       console.error('Failed to delete patient:', error);
     },
+  });
+}
+
+// Paginated query hook — for the patient list page (does not affect other usePatients callers)
+export function usePaginatedPatients(page: number, search: string) {
+  return useQuery({
+    queryKey: ['patients', 'paginated', page, search],
+    queryFn: () => patientApi.listPatientsPaginated(page, 20, search),
+    staleTime: 1000 * 60 * 2,
+    placeholderData: keepPreviousData,
   });
 }
 

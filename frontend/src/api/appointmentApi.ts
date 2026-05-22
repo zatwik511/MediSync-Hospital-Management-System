@@ -1,16 +1,26 @@
 import { apiClient } from './client';
 import type { APIResponse } from '../types';
-import type { Appointment, Doctor, CreateAppointmentDTO } from '../types/appointments';
+import type { Appointment, AppointmentPage, Doctor, CreateAppointmentDTO } from '../types/appointments';
 
 export const appointmentApi = {
 
-  // Get all appointments
+  // Get all appointments (used by dashboards — no pagination)
   async listAppointments(): Promise<Appointment[]> {
     const response = await apiClient.get<APIResponse<Appointment[]>>('/appointments');
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to fetch appointments');
     }
     return response.data.data || [];
+  },
+
+  // Get paginated appointments with optional search
+  async listAppointmentsPaginated(page: number, limit = 20, search = ''): Promise<AppointmentPage> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), search });
+    const response = await apiClient.get<APIResponse<AppointmentPage>>(`/appointments?${params}`);
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch appointments');
+    }
+    return response.data.data!;
   },
 
   // Get appointments for a specific patient

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePatients } from '../hooks/usePatients';
 import {
-  useAppointments,
+  usePaginatedAppointments,
   useDoctors,
   useBookedSlots,
   useCreateAppointment,
@@ -9,6 +9,7 @@ import {
   useCancelAppointment,
 } from '../hooks/useAppointments';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { Pagination } from '../components/Pagination';
 import { Calendar, Clock, User, Plus, X, RefreshCw, Search, Download } from 'lucide-react';
 import type { Appointment } from '../types/appointments';
 import { downloadCsv } from '../utils/exportCsv';
@@ -25,16 +26,33 @@ const STATUS_STYLES: Record<string, string> = {
   Pending: 'bg-yellow-100 text-yellow-700',
 };
 
+const PAGE_SIZE = 20;
+
 export function Appointments() {
-  const { data: appointments, isLoading } = useAppointments();
+  // Pagination & search state
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [apiSearch, setApiSearch] = useState('');
+
+  // Debounce search → reset page on new search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setApiSearch(searchTerm);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const { data: result, isLoading } = usePaginatedAppointments(page, apiSearch);
+  const appointments = result?.data || [];
+  const counts = result?.counts ?? { active: 0, confirmed: 0, cancelled: 0 };
+
   const { data: doctors } = useDoctors();
+  // Patients still fetched in full — used for the book modal dropdown and name lookup
   const { data: patients } = usePatients();
   const createAppointment = useCreateAppointment();
   const rescheduleAppointment = useRescheduleAppointment();
   const cancelAppointment = useCancelAppointment();
-
-  // Search state
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Book modal state
   const [showBookModal, setShowBookModal] = useState(false);
@@ -58,25 +76,9 @@ export function Appointments() {
   // Fetch booked slots for selected doctor/date
   const { data: bookedSlots = [] } = useBookedSlots(bookDoctorID, bookDate);
   const { data: rescheduleBookedSlots = [] } = useBookedSlots(
-    appointments?.find(a => a.id === rescheduleID)?.doctorID || '',
+    appointments.find(a => a.id === rescheduleID)?.doctorID || '',
     rescheduleDate
   );
-
-  // Filter appointments based on search term
-  const filtered = appointments?.filter(a => {
-    const patient = patients?.find(p => p.id === a.patientID);
-    const search = searchTerm.toLowerCase();
-    return (
-      (patient?.name || '').toLowerCase().includes(search) ||
-      (a.doctorName || '').toLowerCase().includes(search) ||
-      (a.doctorSpecialty || '').toLowerCase().includes(search) ||
-      a.date.includes(search) ||
-      a.time.includes(search) ||
-      a.status.toLowerCase().includes(search) ||
-      a.type.toLowerCase().includes(search) ||
-      (a.reason || '').toLowerCase().includes(search)
-    );
-  }) || [];
 
   const handleBook = async () => {
     setBookSubmitted(true);
@@ -158,7 +160,7 @@ export function Appointments() {
     downloadCsv(
       `appointments-${new Date().toISOString().split('T')[0]}.csv`,
       ['Patient', 'Doctor', 'Specialty', 'Date', 'Time', 'Type', 'Status', 'Reason'],
-      filtered.map((a) => {
+      appointments.map((a) => {
         const patient = patients?.find((p) => p.id === a.patientID);
         return [
           patient?.name || a.patientID,
@@ -174,10 +176,7 @@ export function Appointments() {
     );
   };
 
-  if (isLoading) return <LoadingSpinner />;
-
-  const active = appointments?.filter(a => a.status !== 'Cancelled') || [];
-  const cancelled = appointments?.filter(a => a.status === 'Cancelled') || [];
+  if (isLoading && !result) return <LoadingSpinner />;
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -205,20 +204,18 @@ export function Appointments() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — derived from server-side counts (all appointments, not just current page) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-blue-500">
-          <p className="text-2xl font-bold text-blue-600">{active.length}</p>
+          <p className="text-2xl font-bold text-blue-600">{counts.active}</p>
           <p className="text-sm text-gray-500 mt-1">Active Appointments</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-green-500">
-          <p className="text-2xl font-bold text-green-600">
-            {appointments?.filter(a => a.status === 'Confirmed').length || 0}
-          </p>
+          <p className="text-2xl font-bold text-green-600">{counts.confirmed}</p>
           <p className="text-sm text-gray-500 mt-1">Confirmed</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-red-400">
-          <p className="text-2xl font-bold text-red-500">{cancelled.length}</p>
+          <p className="text-2xl font-bold text-red-500">{counts.cancelled}</p>
           <p className="text-sm text-gray-500 mt-1">Cancelled</p>
         </div>
       </div>
@@ -243,9 +240,9 @@ export function Appointments() {
             </button>
           )}
         </div>
-        {searchTerm && (
+        {apiSearch && (
           <p className="text-xs text-gray-400 mt-2">
-            Showing {filtered.length} of {appointments?.length || 0} appointments
+            {result?.total ?? 0} appointment{result?.total !== 1 ? 's' : ''} match "{apiSearch}"
           </p>
         )}
       </div>
@@ -255,83 +252,94 @@ export function Appointments() {
         <div className="p-5 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">All Appointments</h2>
         </div>
-        {filtered.length === 0 ? (
+        {appointments.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
             <Calendar className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p>{searchTerm ? `No appointments match "${searchTerm}"` : 'No appointments yet. Book the first one!'}</p>
+            <p>{apiSearch ? `No appointments match "${apiSearch}"` : 'No appointments yet. Book the first one!'}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Patient</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Doctor</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Date & Time</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Reason</th>
-                  <th className="text-center py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((appointment) => {
-                  const patient = patients?.find(p => p.id === appointment.patientID);
-                  return (
-                    <tr key={appointment.id} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">{patient?.name || appointment.patientID.slice(0, 8) + '...'}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium">{appointment.doctorName || '—'}</p>
-                          <p className="text-xs text-gray-400">{appointment.doctorSpecialty}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                          <span>{appointment.date}</span>
-                          <Clock className="w-3.5 h-3.5 text-gray-400 ml-1" />
-                          <span>{appointment.time}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">{appointment.type}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[appointment.status] || 'bg-gray-100 text-gray-600'}`}>
-                          {appointment.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 text-xs">{appointment.reason || '—'}</td>
-                      <td className="py-3 px-4">
-                        {appointment.status !== 'Cancelled' && (
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => openReschedule(appointment)}
-                              className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
-                              title="Reschedule"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleCancel(appointment.id)}
-                              className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200"
-                              title="Cancel"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Patient</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Doctor</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Date & Time</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Type</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Reason</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-500 uppercase text-xs">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map((appointment) => {
+                    const patient = patients?.find(p => p.id === appointment.patientID);
+                    return (
+                      <tr key={appointment.id} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium">{patient?.name || appointment.patientID.slice(0, 8) + '...'}</span>
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div>
+                            <p className="font-medium">{appointment.doctorName || '—'}</p>
+                            <p className="text-xs text-gray-400">{appointment.doctorSpecialty}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <span>{appointment.date}</span>
+                            <Clock className="w-3.5 h-3.5 text-gray-400 ml-1" />
+                            <span>{appointment.time}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-gray-600">{appointment.type}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[appointment.status] || 'bg-gray-100 text-gray-600'}`}>
+                            {appointment.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-500 text-xs">{appointment.reason || '—'}</td>
+                        <td className="py-3 px-4">
+                          {appointment.status !== 'Cancelled' && (
+                            <div className="flex justify-center gap-2">
+                              <button
+                                onClick={() => openReschedule(appointment)}
+                                className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                                title="Reschedule"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleCancel(appointment.id)}
+                                className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-5 pb-4">
+              <Pagination
+                page={page}
+                totalPages={result?.totalPages ?? 1}
+                total={result?.total ?? 0}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            </div>
+          </>
         )}
       </div>
 
@@ -417,7 +425,6 @@ export function Appointments() {
                   {bookSubmitted && bookErrors.time && <p className="text-red-500 text-xs mt-1">{bookErrors.time}</p>}
                 </div>
               )}
-              {/* Show time error even when doctor/date not yet chosen */}
               {bookSubmitted && bookErrors.time && (!bookDoctorID || !bookDate) && (
                 <p className="text-red-500 text-xs -mt-2">{bookErrors.time}</p>
               )}

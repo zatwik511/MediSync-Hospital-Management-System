@@ -103,6 +103,87 @@ export class AppointmentService {
     return result.rows.map(row => this.transformAppointment(row));
   }
 
+  async listAppointmentsPaginated(
+    page: number,
+    limit: number,
+    search: string,
+    staffId = ''
+  ): Promise<{
+    data: Appointment[];
+    total: number;
+    page: number;
+    totalPages: number;
+    counts: { active: number; confirmed: number; cancelled: number };
+  }> {
+    const offset = (page - 1) * limit;
+    const [countResult, dataResult, countsResult] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) FROM appointments a
+         LEFT JOIN doctors d ON a.doctor_id = d.id
+         LEFT JOIN patients pt ON a.patient_id = pt.id
+         WHERE ($1 = '' OR (
+           COALESCE(pt.name, '') ILIKE '%' || $1 || '%'
+           OR COALESCE(d.name, '') ILIKE '%' || $1 || '%'
+           OR COALESCE(d.specialty, '') ILIKE '%' || $1 || '%'
+           OR a.date::text ILIKE '%' || $1 || '%'
+           OR a.time ILIKE '%' || $1 || '%'
+           OR a.status ILIKE '%' || $1 || '%'
+           OR a.type ILIKE '%' || $1 || '%'
+           OR COALESCE(a.reason, '') ILIKE '%' || $1 || '%'
+         ))`,
+        [search]
+      ),
+      pool.query(
+        `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty
+         FROM appointments a
+         LEFT JOIN doctors d ON a.doctor_id = d.id
+         LEFT JOIN patients pt ON a.patient_id = pt.id
+         WHERE ($1 = '' OR (
+           COALESCE(pt.name, '') ILIKE '%' || $1 || '%'
+           OR COALESCE(d.name, '') ILIKE '%' || $1 || '%'
+           OR COALESCE(d.specialty, '') ILIKE '%' || $1 || '%'
+           OR a.date::text ILIKE '%' || $1 || '%'
+           OR a.time ILIKE '%' || $1 || '%'
+           OR a.status ILIKE '%' || $1 || '%'
+           OR a.type ILIKE '%' || $1 || '%'
+           OR COALESCE(a.reason, '') ILIKE '%' || $1 || '%'
+         ))
+         ORDER BY a.date ASC, a.time ASC
+         LIMIT $2 OFFSET $3`,
+        [search, limit, offset]
+      ),
+      pool.query(
+        `SELECT
+           COUNT(*) FILTER (WHERE status != 'Cancelled') AS active,
+           COUNT(*) FILTER (WHERE status = 'Confirmed')  AS confirmed,
+           COUNT(*) FILTER (WHERE status = 'Cancelled')  AS cancelled
+         FROM appointments`
+      ),
+    ]);
+    const total = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const c = countsResult.rows[0];
+    if (staffId) {
+      await auditService.logAction({
+        staffId,
+        action: 'READ',
+        entityType: 'appointment',
+        description: `Listed appointments page ${page}${search ? ` (search: "${search}")` : ''} — ${total} total`,
+      });
+    }
+    return {
+      data: dataResult.rows.map(row => this.transformAppointment(row)),
+      total,
+      page,
+      totalPages,
+      counts: {
+        active:    parseInt(c.active,    10),
+        confirmed: parseInt(c.confirmed, 10),
+        cancelled: parseInt(c.cancelled, 10),
+      },
+    };
+  }
+
   async getAppointmentsByPatient(patientID: string, staffId = ''): Promise<Appointment[]> {
     const result = await pool.query(
       `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty
