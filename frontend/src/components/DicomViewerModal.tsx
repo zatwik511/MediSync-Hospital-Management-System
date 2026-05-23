@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+﻿import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, ZoomIn, ZoomOut, RotateCw, Maximize2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import * as cornerstone from 'cornerstone-core';
 import { config } from '../config';
@@ -159,7 +159,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
     >
       <div className="flex flex-col w-full max-w-5xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-gray-900">
 
-        {/* ── Header ─────────────────────────────────────────── */}
+        {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-gray-900 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 shrink-0">
@@ -170,7 +170,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
               <p className="text-xs mt-0.5 truncate">
                 <span className="text-blue-400 font-medium">{imageInfo.type}</span>
                 {imageInfo.disease && (
-                  <span className="text-gray-500"> · {imageInfo.disease}</span>
+                  <span className="text-gray-500"> Â· {imageInfo.disease}</span>
                 )}
               </p>
             </div>
@@ -184,7 +184,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
           </button>
         </div>
 
-        {/* ── Toolbar ────────────────────────────────────────── */}
+        {/* â”€â”€ Toolbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex items-end gap-0.5 px-4 py-2.5 bg-gray-800/70 border-b border-white/10 shrink-0 flex-wrap">
 
           {/* Zoom */}
@@ -198,7 +198,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
 
           <div className={separator} />
 
-          {/* Contrast — Window Width */}
+          {/* Contrast â€” Window Width */}
           <div className="flex flex-col items-center gap-0.5">
             <p className={groupLabel}>Contrast</p>
             <div className="flex gap-0.5">
@@ -207,7 +207,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
                 className={`${toolBtn} text-violet-400 hover:text-violet-200 hover:bg-violet-900/40`}
                 title="Narrow window (sharper contrast)"
               >
-                −W
+                âˆ’W
               </button>
               <button
                 onClick={() => handleWindowWidth(100)}
@@ -221,7 +221,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
 
           <div className={separator} />
 
-          {/* Brightness — Window Level */}
+          {/* Brightness â€” Window Level */}
           <div className="flex flex-col items-center gap-0.5">
             <p className={groupLabel}>Brightness</p>
             <div className="flex gap-0.5">
@@ -230,7 +230,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
                 className={`${toolBtn} text-amber-400 hover:text-amber-200 hover:bg-amber-900/30`}
                 title="Lower window level (darker)"
               >
-                −L
+                âˆ’L
               </button>
               <button
                 onClick={() => handleWindowCenter(100)}
@@ -248,17 +248,17 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
           <div className="flex flex-col items-center gap-0.5">
             <p className={groupLabel}>Transform</p>
             <div className="flex gap-0.5">
-              <button onClick={handleRotate} className={toolBtn} title="Rotate 90°"><RotateCw size={14} /></button>
+              <button onClick={handleRotate} className={toolBtn} title="Rotate 90Â°"><RotateCw size={14} /></button>
               <button onClick={handleReset}  className={toolBtn} title="Reset view"><Maximize2 size={14} /></button>
             </div>
           </div>
 
           <p className="text-[11px] text-gray-700 ml-auto self-end pb-0.5 hidden lg:block select-none">
-            Drag to pan · Esc to close
+            Drag to pan Â· Esc to close
           </p>
         </div>
 
-        {/* ── Viewer ─────────────────────────────────────────── */}
+        {/* â”€â”€ Viewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="relative flex-1 min-h-0 bg-black overflow-hidden">
           <div
             ref={viewerRef}
@@ -272,8 +272,8 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
           {/* Loading overlay */}
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-              <div className="w-11 h-11 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin mb-4" />
-              <p className="text-gray-400 text-sm tracking-wide">Loading DICOM image…</p>
+              <div className="w-11 h-11 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin mb-4" />
+              <p className="text-gray-400 text-sm tracking-wide">Loading DICOM imageâ€¦</p>
             </div>
           )}
 

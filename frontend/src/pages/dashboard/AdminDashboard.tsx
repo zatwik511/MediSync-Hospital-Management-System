@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Users, Calendar, UserCog, Image, Wallet, ShieldCheck } from 'lucide-react';
+import { Users, Calendar, UserCog, Wallet, ShieldCheck } from 'lucide-react';
 import { usePatients } from '../../hooks/usePatients';
 import { useAppointments, useCancelAppointment } from '../../hooks/useAppointments';
 import { useStaff } from '../../hooks/useStaff';
-import { useTotalImageCount } from '../../hooks/useImages';
 import { useAuditLogs } from '../../hooks/useAudit';
 import { formatRelativeTime } from '../../utils/time';
 import { ScheduleSection } from './ScheduleSection';
@@ -29,41 +28,42 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, colour, to }: StatCardProps) {
   const inner = (
-    <div className="card p-6 hover:shadow-md transition-shadow">
-      <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${colour}`}>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colour}`}>
         {icon}
       </div>
-      <p className="text-gray-600 text-sm font-medium">{label}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide leading-none mb-1">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 font-display tabular-nums leading-none">{value}</p>
+      </div>
     </div>
   );
-  return to ? <Link to={to}>{inner}</Link> : inner;
+  return to ? <Link to={to} className="block">{inner}</Link> : inner;
 }
 
 export function AdminDashboard({ user }: { user: AuthUser }) {
   const { data: patients = [] }         = usePatients();
   const { data: appointments = [], isLoading } = useAppointments();
   const { data: staff = [] }            = useStaff();
-  const { data: totalImages = 0 }       = useTotalImageCount();
   const { data: auditLogs = [] }        = useAuditLogs();
   const cancelMutation                  = useCancelAppointment();
 
   const cancellingId = cancelMutation.isPending ? (cancelMutation.variables ?? null) : null;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrow = tomorrowDate.toISOString().split('T')[0];
+  const tomorrow = tomorrowDate.toLocaleDateString('en-CA');
 
   const todayLabel    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const tomorrowLabel = tomorrowDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const todaySchedule = appointments
-    .filter(a => a.date === today && a.status !== 'Cancelled')
+    .filter(a => a.date.split('T')[0] === today && a.status !== 'Cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const tomorrowSchedule = appointments
-    .filter(a => a.date === tomorrow && a.status !== 'Cancelled')
+    .filter(a => a.date.split('T')[0] === tomorrow && a.status !== 'Cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const totalRevenue = patients.reduce((sum, p) => sum + Number(p.totalCost), 0);
@@ -87,12 +87,11 @@ export function AdminDashboard({ user }: { user: AuthUser }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <StatCard icon={<Users size={24} />}   label="Total Patients"    value={patients.length}            colour="bg-blue-100 text-blue-600"   to="/patients" />
-          <StatCard icon={<Calendar size={24} />} label="Total Appointments" value={totalActive}               colour="bg-indigo-100 text-indigo-600" to="/appointments" />
-          <StatCard icon={<UserCog size={24} />}  label="Total Staff"        value={staff.length}               colour="bg-teal-100 text-teal-600"   to="/staff" />
-          <StatCard icon={<Image size={24} />}    label="Medical Images"     value={totalImages}                colour="bg-orange-100 text-orange-600" to="/images" />
-          <StatCard icon={<Wallet size={24} />}   label="Total Revenue"      value={`£${totalRevenue.toFixed(2)}`} colour="bg-green-100 text-green-600" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard icon={<Users size={20} />}    label="Total Patients"     value={patients.length}               colour="bg-blue-100 text-blue-600"    to="/patients" />
+          <StatCard icon={<Calendar size={20} />} label="Appointments"       value={totalActive}                   colour="bg-indigo-100 text-indigo-600" to="/appointments" />
+          <StatCard icon={<UserCog size={20} />}  label="Total Staff"        value={staff.length}                  colour="bg-teal-100 text-teal-600"    to="/staff" />
+          <StatCard icon={<Wallet size={20} />}   label="Total Revenue"      value={`£${totalRevenue.toFixed(2)}`} colour="bg-emerald-100 text-emerald-600" />
         </div>
 
         {/* Today's Schedule + Upcoming Tomorrow */}

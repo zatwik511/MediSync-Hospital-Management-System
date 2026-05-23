@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { PlusCircle, Trash2, Pill, ChevronDown, ChevronUp, X, ClipboardList } from 'lucide-react';
 import { usePatientPrescriptions, useCreatePrescription, useDeletePrescription } from '../hooks/usePrescriptions';
 import type { Medication } from '../api/prescriptionApi';
@@ -42,7 +42,7 @@ export function PrescriptionSection({ patientId }: Props) {
   const [submitted, setSubmitted]     = useState(false);
   const [expandedId, setExpandedId]   = useState<string | null>(null);
 
-  // ── Form helpers ──────────────────────────────────────────────
+  // â”€â”€ Form helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const updateMed = (index: number, field: keyof Medication, value: string) => {
     setMedications(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
   };
@@ -78,15 +78,15 @@ export function PrescriptionSection({ patientId }: Props) {
     resetForm();
   };
 
-  // ── Render ────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="bg-white rounded-lg shadow-md p-6 no-print">
 
       {/* Section header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-50 border border-teal-200">
-            <Pill size={16} className="text-teal-600" />
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200">
+            <Pill size={16} className="text-emerald-600" />
           </div>
           <h2 className="text-xl font-semibold text-gray-900">Prescriptions & Medication</h2>
           {prescriptions.length > 0 && (
@@ -98,7 +98,7 @@ export function PrescriptionSection({ patientId }: Props) {
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm rounded-md hover:bg-teal-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm rounded-md hover:bg-emerald-700 transition-colors"
           >
             <PlusCircle size={15} />
             New Prescription
@@ -106,9 +106,9 @@ export function PrescriptionSection({ patientId }: Props) {
         )}
       </div>
 
-      {/* ── Add Prescription Form ─────────────────────────────── */}
+      {/* â”€â”€ Add Prescription Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isAdding && (
-        <div className="border border-teal-200 rounded-xl bg-teal-50/30 p-5 mb-6">
+        <div className="border border-emerald-200 rounded-xl bg-emerald-50/30 p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-800">New Prescription</h3>
             <button
@@ -152,7 +152,7 @@ export function PrescriptionSection({ patientId }: Props) {
                       className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                         submitted && !med.name.trim()
                           ? 'border-red-400 focus:ring-red-400'
-                          : 'border-gray-300 focus:ring-teal-500'
+                          : 'border-gray-300 focus:ring-emerald-500'
                       }`}
                     />
                     {submitted && !med.name.trim() && (
@@ -168,7 +168,7 @@ export function PrescriptionSection({ patientId }: Props) {
                       value={med.dosage}
                       onChange={e => updateMed(i, 'dosage', e.target.value)}
                       placeholder="e.g. 500mg, 10ml"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
 
@@ -178,7 +178,7 @@ export function PrescriptionSection({ patientId }: Props) {
                     <select
                       value={med.frequency}
                       onChange={e => updateMed(i, 'frequency', e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                     >
                       {FREQUENCY_OPTIONS.map(opt => (
                         <option key={opt} value={opt}>{opt}</option>
@@ -194,7 +194,7 @@ export function PrescriptionSection({ patientId }: Props) {
                       value={med.duration}
                       onChange={e => updateMed(i, 'duration', e.target.value)}
                       placeholder="e.g. 7 days, 2 weeks"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
 
@@ -208,7 +208,7 @@ export function PrescriptionSection({ patientId }: Props) {
                       value={med.instructions}
                       onChange={e => updateMed(i, 'instructions', e.target.value)}
                       placeholder="e.g. Take with food, Avoid alcohol"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export function PrescriptionSection({ patientId }: Props) {
 
           <button
             onClick={addMedRow}
-            className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-800 font-medium mb-5 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-800 font-medium mb-5 transition-colors"
           >
             <PlusCircle size={15} />
             Add Another Medication
@@ -235,7 +235,7 @@ export function PrescriptionSection({ patientId }: Props) {
               onChange={e => setAdvice(e.target.value)}
               rows={4}
               placeholder="e.g. Take proper rest for 3 days, drink at least 2 litres of water daily, avoid spicy foods, avoid strenuous exercise..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
             />
           </div>
 
@@ -244,9 +244,9 @@ export function PrescriptionSection({ patientId }: Props) {
             <button
               onClick={handleSubmit}
               disabled={createPrescription.isPending}
-              className="px-5 py-2 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
-              {createPrescription.isPending ? 'Saving…' : 'Save Prescription'}
+              {createPrescription.isPending ? 'Savingâ€¦' : 'Save Prescription'}
             </button>
             <button
               onClick={resetForm}
@@ -258,7 +258,7 @@ export function PrescriptionSection({ patientId }: Props) {
         </div>
       )}
 
-      {/* ── Prescription List ─────────────────────────────────── */}
+      {/* â”€â”€ Prescription List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2].map(i => (
@@ -280,20 +280,20 @@ export function PrescriptionSection({ patientId }: Props) {
             return (
               <div key={rx.id} className="border border-gray-200 rounded-xl overflow-hidden">
 
-                {/* Card header — always visible */}
+                {/* Card header â€” always visible */}
                 <div
                   className="flex items-center justify-between px-4 py-3.5 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                   onClick={() => setExpandedId(isExpanded ? null : rx.id)}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 shrink-0">
-                      <Pill size={15} className="text-teal-600" />
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 shrink-0">
+                      <Pill size={15} className="text-emerald-600" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-800">
                         {rx.medications.length} medication{rx.medications.length !== 1 ? 's' : ''}
                         {rx.prescribedByName && (
-                          <span className="font-normal text-gray-500"> · {rx.prescribedByName}</span>
+                          <span className="font-normal text-gray-500"> Â· {rx.prescribedByName}</span>
                         )}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
@@ -351,11 +351,11 @@ export function PrescriptionSection({ patientId }: Props) {
                             {rx.medications.map((med, i) => (
                               <tr key={i} className="border-b border-gray-100 last:border-0">
                                 <td className="py-2.5 px-3 font-medium text-gray-900">{med.name}</td>
-                                <td className="py-2.5 px-3 text-gray-700">{med.dosage || '—'}</td>
-                                <td className="py-2.5 px-3 text-gray-700">{med.frequency || '—'}</td>
-                                <td className="py-2.5 px-3 text-gray-700">{med.duration || '—'}</td>
+                                <td className="py-2.5 px-3 text-gray-700">{med.dosage || 'â€”'}</td>
+                                <td className="py-2.5 px-3 text-gray-700">{med.frequency || 'â€”'}</td>
+                                <td className="py-2.5 px-3 text-gray-700">{med.duration || 'â€”'}</td>
                                 <td className="py-2.5 px-3 text-gray-500 italic text-xs">
-                                  {med.instructions || '—'}
+                                  {med.instructions || 'â€”'}
                                 </td>
                               </tr>
                             ))}
@@ -370,8 +370,8 @@ export function PrescriptionSection({ patientId }: Props) {
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                           Doctor's Advice
                         </p>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-                          <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+                          <p className="text-sm text-emerald-900 leading-relaxed whitespace-pre-wrap">
                             {rx.advice}
                           </p>
                         </div>

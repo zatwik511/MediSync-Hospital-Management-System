@@ -1,4 +1,4 @@
-import { PatientLayout } from '../../components/PatientLayout';
+﻿import { PatientLayout } from '../../components/PatientLayout';
 import { usePatientProfile, usePatientImageRecords, usePatientFinancial, useMyAppointments } from '../../hooks/usePatientPortal';
 import { Calendar, Image, DollarSign, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -71,17 +71,17 @@ export function PatientDashboard() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <SummaryCard
-              icon={<Calendar className="w-5 h-5 text-blue-600" />}
+              icon={<Calendar className="w-5 h-5 text-emerald-600" />}
               label="Upcoming Appointments"
               value={upcomingCount}
               sub={nextApptLabel ? `Next: ${nextApptLabel}` : 'No upcoming appointments'}
-              colour="bg-blue-50"
+              colour="bg-emerald-50"
               to="/patient/appointments"
             />
             <SummaryCard
               icon={<DollarSign className="w-5 h-5 text-emerald-600" />}
               label="Total Cost"
-              value={`£${Number(financial?.totalCost ?? 0).toFixed(2)}`}
+              value={`Â£${Number(financial?.totalCost ?? 0).toFixed(2)}`}
               sub={financial && financial.tasks.length > 0 ? `${financial.tasks.length} charge${financial.tasks.length !== 1 ? 's' : ''}` : 'No charges recorded'}
               colour="bg-emerald-50"
               to="/patient/records"
@@ -111,14 +111,14 @@ export function PatientDashboard() {
           </div>
         )}
 
-        <div className="mt-8 bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+        <div className="mt-8 bg-emerald-50 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-800">Need an appointment?</p>
-            <p className="text-xs text-blue-600 mt-0.5">Book with one of our doctors today.</p>
+            <p className="text-sm font-medium text-emerald-800">Need an appointment?</p>
+            <p className="text-xs text-emerald-600 mt-0.5">Book with one of our doctors today.</p>
           </div>
           <Link
             to="/patient/book-appointment"
-            className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors font-medium"
+            className="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md transition-colors font-medium"
           >
             Book Now
           </Link>

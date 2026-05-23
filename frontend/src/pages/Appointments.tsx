@@ -8,15 +8,30 @@ import {
   useRescheduleAppointment,
   useCancelAppointment,
 } from '../hooks/useAppointments';
+import { useAppointmentAnalytics, useAdvancedAppointmentAnalytics } from '../hooks/useReports';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Pagination } from '../components/Pagination';
-import { Calendar, Clock, User, Plus, X, RefreshCw, Search, Download } from 'lucide-react';
+import {
+  Calendar, Clock, User, Plus, X, RefreshCw, Search, Download,
+  TrendingUp, BarChart2, MessageSquare, ArrowUpRight, ArrowDownRight, Minus,
+  CheckCircle, XCircle, Users,
+} from 'lucide-react';
 import type { Appointment } from '../types/appointments';
 import { downloadCsv } from '../utils/exportCsv';
 
 const ALL_SLOTS = [
   '08:30', '09:00', '09:30', '10:00', '10:30', '11:00',
   '11:30', '14:00', '14:30', '15:00', '15:30', '16:00',
+];
+
+const DAYS = [
+  { dow: 1, label: 'Mon' },
+  { dow: 2, label: 'Tue' },
+  { dow: 3, label: 'Wed' },
+  { dow: 4, label: 'Thu' },
+  { dow: 5, label: 'Fri' },
+  { dow: 6, label: 'Sat' },
+  { dow: 0, label: 'Sun' },
 ];
 
 const STATUS_STYLES: Record<string, string> = {
@@ -29,12 +44,14 @@ const STATUS_STYLES: Record<string, string> = {
 const PAGE_SIZE = 20;
 
 export function Appointments() {
+  const [activeTab, setActiveTab] = useState<'list' | 'analytics'>('list');
+
   // Pagination & search state
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [apiSearch, setApiSearch] = useState('');
 
-  // Debounce search → reset page on new search
+  // Debounce search â†' reset page on new search
   useEffect(() => {
     const timer = setTimeout(() => {
       setApiSearch(searchTerm);
@@ -48,11 +65,14 @@ export function Appointments() {
   const counts = result?.counts ?? { active: 0, confirmed: 0, cancelled: 0 };
 
   const { data: doctors } = useDoctors();
-  // Patients still fetched in full — used for the book modal dropdown and name lookup
+  // Patients still fetched in full â€" used for the book modal dropdown and name lookup
   const { data: patients } = usePatients();
   const createAppointment = useCreateAppointment();
   const rescheduleAppointment = useRescheduleAppointment();
   const cancelAppointment = useCancelAppointment();
+
+  const { data: analytics } = useAppointmentAnalytics();
+  const { data: advanced } = useAdvancedAppointmentAnalytics();
 
   // Book modal state
   const [showBookModal, setShowBookModal] = useState(false);
@@ -186,28 +206,53 @@ export function Appointments() {
           <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
           <p className="text-gray-500 mt-1">Manage patient appointments and scheduling</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-          <button
-            onClick={() => { resetBookForm(); setShowBookModal(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Book Appointment
-          </button>
-        </div>
+        {activeTab === 'list' && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+            <button
+              onClick={() => { resetBookForm(); setShowBookModal(true); }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Book Appointment
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Stats — derived from server-side counts (all appointments, not just current page) */}
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-white rounded-lg shadow-sm p-1 w-fit">
+        <button
+          onClick={() => setActiveTab('list')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'list' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          Appointments
+        </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'analytics' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          Analytics
+        </button>
+      </div>
+
+      {activeTab === 'list' && (
+      <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-blue-500">
-          <p className="text-2xl font-bold text-blue-600">{counts.active}</p>
+        <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-emerald-500">
+          <p className="text-2xl font-bold text-emerald-600">{counts.active}</p>
           <p className="text-sm text-gray-500 mt-1">Active Appointments</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-green-500">
@@ -229,7 +274,7 @@ export function Appointments() {
             placeholder="Search by patient, doctor, date, status or reason..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 border border-gray-300 rounded-md py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-4 border border-gray-300 rounded-md py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           {searchTerm && (
             <button
@@ -285,14 +330,14 @@ export function Appointments() {
                         </td>
                         <td className="py-3 px-4">
                           <div>
-                            <p className="font-medium">{appointment.doctorName || '—'}</p>
+                            <p className="font-medium">{appointment.doctorName || '-'}</p>
                             <p className="text-xs text-gray-400">{appointment.doctorSpecialty}</p>
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                            <span>{appointment.date}</span>
+                            <span>{new Date(appointment.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                             <Clock className="w-3.5 h-3.5 text-gray-400 ml-1" />
                             <span>{appointment.time}</span>
                           </div>
@@ -303,13 +348,13 @@ export function Appointments() {
                             {appointment.status}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-500 text-xs">{appointment.reason || '—'}</td>
+                        <td className="py-3 px-4 text-gray-500 text-xs">{appointment.reason || '-'}</td>
                         <td className="py-3 px-4">
                           {appointment.status !== 'Cancelled' && (
                             <div className="flex justify-center gap-2">
                               <button
                                 onClick={() => openReschedule(appointment)}
-                                className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                                className="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200"
                                 title="Reschedule"
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
@@ -342,6 +387,266 @@ export function Appointments() {
           </>
         )}
       </div>
+      </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-gray-900">Appointment Analytics</h2>
+          {!analytics && <LoadingSpinner />}
+          {analytics && (<>
+
+          {/* Top stat cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-emerald-500">
+              <div className="flex items-center gap-3 mb-2">
+                <Calendar className="w-5 h-5 text-blue-500" />
+                <span className="text-sm text-gray-500">Total Appointments</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-900 tabular-nums">{analytics.totalAppointments}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-green-500">
+              <div className="flex items-center gap-3 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span className="text-sm text-gray-500">Fulfilment Rate</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-900 tabular-nums">{analytics.fulfilmentRate}%</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-red-400">
+              <div className="flex items-center gap-3 mb-2">
+                <XCircle className="w-5 h-5 text-red-400" />
+                <span className="text-sm text-gray-500">Cancellation Rate</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-900 tabular-nums">{analytics.cancellationRate}%</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-purple-500">
+              <div className="flex items-center gap-3 mb-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                <span className="text-sm text-gray-500">Active Doctors</span>
+              </div>
+              <p className="text-3xl font-bold text-gray-900 tabular-nums">{analytics.byDoctor.length}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Monthly volume */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Volume (Last 6 Months)</h3>
+              {analytics.monthly.length === 0 ? (
+                <p className="text-gray-400 text-sm">No data yet</p>
+              ) : (
+                <div className="flex items-end gap-3 h-36 pt-4">
+                  {analytics.monthly.map((m) => {
+                    const max = Math.max(...analytics.monthly.map(x => x.count), 1);
+                    return (
+                      <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-xs text-gray-500 font-medium">{m.count}</span>
+                        <div className="w-full bg-blue-500 rounded-t-sm" style={{ height: `${Math.max((m.count / max) * 100, 4)}%` }} />
+                        <span className="text-xs text-gray-400 text-center leading-tight">{m.month}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* By status */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">By Status</h3>
+              <div className="space-y-3">
+                {analytics.byStatus.map((s) => {
+                  const pct = analytics.totalAppointments > 0 ? Math.round((s.count / analytics.totalAppointments) * 100) : 0;
+                  const colours: Record<string, string> = { Confirmed: 'bg-green-500', Cancelled: 'bg-red-400', Completed: 'bg-blue-500', Pending: 'bg-yellow-400' };
+                  return (
+                    <div key={s.label}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-700">{s.label}</span>
+                        <span className="font-semibold">{s.count} ({pct}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className={`h-2 rounded-full ${colours[s.label] || 'bg-gray-400'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* By type */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">By Type</h3>
+              <div className="space-y-3">
+                {analytics.byType.map((t) => {
+                  const pct = analytics.totalAppointments > 0 ? Math.round((t.count / analytics.totalAppointments) * 100) : 0;
+                  return (
+                    <div key={t.label}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-700">{t.label}</span>
+                        <span className="font-semibold">{t.count} ({pct}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className="h-2 rounded-full bg-purple-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* By doctor */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Per Doctor</h3>
+              <div className="space-y-3">
+                {analytics.byDoctor.map((d) => {
+                  const max = Math.max(...analytics.byDoctor.map(x => x.count), 1);
+                  const pct = Math.round((d.count / max) * 100);
+                  return (
+                    <div key={d.name}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <div>
+                          <span className="text-gray-700 font-medium">{d.name}</span>
+                          <span className="text-gray-400 text-xs ml-2">{d.specialty}</span>
+                        </div>
+                        <span className="font-semibold">{d.count}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className="h-2 rounded-full bg-teal-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Advanced insights */}
+          {advanced && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Advanced Insights</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-indigo-500">
+                  <div className="flex items-center gap-2 mb-2"><BarChart2 className="w-4 h-4 text-indigo-500" /><span className="text-xs text-gray-500">Busiest Day</span></div>
+                  {advanced.busiestDays.length > 0 ? (
+                    <><p className="text-xl font-bold text-gray-900">{advanced.busiestDays.reduce((a, b) => a.count >= b.count ? a : b).dayName}</p><p className="text-xs text-gray-400 mt-0.5">{advanced.busiestDays.reduce((a, b) => a.count >= b.count ? a : b).count} appts</p></>
+                  ) : <p className="text-sm text-gray-400">No data</p>}
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-cyan-500">
+                  <div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-cyan-500" /><span className="text-xs text-gray-500">Busiest Slot</span></div>
+                  {advanced.busiestSlots.length > 0 ? (
+                    <><p className="text-xl font-bold text-gray-900">{advanced.busiestSlots[0].time}</p><p className="text-xs text-gray-400 mt-0.5">{advanced.busiestSlots[0].count} appts</p></>
+                  ) : <p className="text-sm text-gray-400">No data</p>}
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-amber-500">
+                  <div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-amber-500" /><span className="text-xs text-gray-500">Avg / Week</span></div>
+                  <p className="text-xl font-bold text-gray-900">{advanced.avgPerWeek}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">last 3 months</p>
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-rose-400">
+                  <div className="flex items-center gap-2 mb-2"><MessageSquare className="w-4 h-4 text-rose-400" /><span className="text-xs text-gray-500">Top Reason</span></div>
+                  {advanced.topReasons.length > 0 ? (
+                    <><p className="text-sm font-bold text-gray-900 leading-tight">{advanced.topReasons[0].reason}</p><p className="text-xs text-gray-400 mt-0.5">{advanced.topReasons[0].count} appts</p></>
+                  ) : <p className="text-sm text-gray-400">No reasons logged</p>}
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-5 border-t-4 border-emerald-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    {advanced.trend.changePercent === null || advanced.trend.changePercent === 0
+                      ? <Minus className="w-4 h-4 text-gray-400" />
+                      : advanced.trend.changePercent > 0
+                      ? <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                      : <ArrowDownRight className="w-4 h-4 text-red-400" />}
+                    <span className="text-xs text-gray-500">This Month</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">{advanced.trend.thisMonth}</p>
+                  <p className={`text-xs mt-0.5 font-medium ${advanced.trend.changePercent === null ? 'text-gray-400' : advanced.trend.changePercent > 0 ? 'text-emerald-600' : advanced.trend.changePercent < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {advanced.trend.changePercent === null ? 'No prior data' : advanced.trend.changePercent === 0 ? 'Same as last month' : `${advanced.trend.changePercent > 0 ? '+' : ''}${advanced.trend.changePercent}% vs last month`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Heatmap + Top reasons */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
+                  <h4 className="font-semibold text-gray-900 mb-1">Appointment Heatmap</h4>
+                  <p className="text-xs text-gray-400 mb-4">Non-cancelled appointments by day and time slot</p>
+                  {(() => {
+                    const maxCell = Math.max(...advanced.heatmap.map(h => h.count), 1);
+                    const cellMap = new Map(advanced.heatmap.map(h => [`${h.day}-${h.time}`, h.count]));
+                    return (
+                      <div className="overflow-x-auto">
+                        <table className="text-xs w-full">
+                          <thead>
+                            <tr>
+                              <th className="w-14 py-1 pr-2 text-right text-gray-400 font-normal">Slot</th>
+                              {DAYS.map(d => <th key={d.dow} className="py-1 px-1 text-center text-gray-500 font-medium w-12">{d.label}</th>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ALL_SLOTS.map(slot => (
+                              <tr key={slot}>
+                                <td className="pr-2 py-0.5 text-right text-gray-400 font-mono">{slot}</td>
+                                {DAYS.map(d => {
+                                  const count = cellMap.get(`${d.dow}-${slot}`) ?? 0;
+                                  const intensity = count / maxCell;
+                                  return (
+                                    <td key={d.dow} className="px-1 py-0.5">
+                                      <div
+                                        className="w-full h-7 rounded flex items-center justify-center text-xs font-medium"
+                                        style={{
+                                          backgroundColor: count === 0 ? '#f3f4f6' : `rgba(37,99,235,${0.12 + 0.88 * intensity})`,
+                                          color: intensity > 0.55 ? '#fff' : intensity > 0 ? '#1e40af' : '#9ca3af',
+                                        }}
+                                        title={count > 0 ? `${d.label} ${slot}: ${count} appt${count !== 1 ? 's' : ''}` : undefined}
+                                      >
+                                        {count > 0 ? count : ''}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className="flex items-center gap-2 mt-3 justify-end">
+                          <span className="text-xs text-gray-400">Low</span>
+                          {[0.12, 0.35, 0.55, 0.75, 1].map(a => (
+                            <div key={a} className="w-5 h-4 rounded" style={{ backgroundColor: `rgba(37,99,235,${a})` }} />
+                          ))}
+                          <span className="text-xs text-gray-400">High</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h4 className="font-semibold text-gray-900 mb-1">Top Appointment Reasons</h4>
+                  <p className="text-xs text-gray-400 mb-4">Most frequently recorded</p>
+                  {advanced.topReasons.length === 0 ? (
+                    <p className="text-sm text-gray-400">No reasons have been logged yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {advanced.topReasons.map((r, i) => {
+                        const pct = Math.round((r.count / advanced.topReasons[0].count) * 100);
+                        return (
+                          <div key={i}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-700 truncate max-w-[160px]" title={r.reason}>{r.reason}</span>
+                              <span className="font-semibold ml-2 shrink-0">{r.count}</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                              <div className="h-1.5 rounded-full bg-rose-400" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          </>)}
+        </div>
+      )}
 
       {/* Book Appointment Modal */}
       {showBookModal && (
@@ -360,7 +665,7 @@ export function Appointments() {
                 <select
                   value={bookPatientID}
                   onChange={e => setBookPatientID(e.target.value)}
-                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.patient ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.patient ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-emerald-500'}`}
                 >
                   <option value="">Select a patient</option>
                   {patients?.map(p => (
@@ -375,11 +680,11 @@ export function Appointments() {
                 <select
                   value={bookDoctorID}
                   onChange={e => { setBookDoctorID(e.target.value); setBookTime(''); }}
-                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.doctor ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.doctor ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-emerald-500'}`}
                 >
                   <option value="">Select a doctor</option>
                   {doctors?.map(d => (
-                    <option key={d.id} value={d.id}>{d.name} — {d.specialty}</option>
+                    <option key={d.id} value={d.id}>{d.name} - {d.specialty}</option>
                   ))}
                 </select>
                 {bookSubmitted && bookErrors.doctor && <p className="text-red-500 text-xs mt-1">{bookErrors.doctor}</p>}
@@ -392,7 +697,7 @@ export function Appointments() {
                   value={bookDate}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={e => { setBookDate(e.target.value); setBookTime(''); }}
-                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.date ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.date ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-emerald-500'}`}
                 />
                 {bookSubmitted && bookErrors.date && <p className="text-red-500 text-xs mt-1">{bookErrors.date}</p>}
               </div>
@@ -413,8 +718,8 @@ export function Appointments() {
                             taken
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through border-gray-200'
                               : selected
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'border-gray-300 hover:border-blue-400 hover:text-blue-600'
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'border-gray-300 hover:border-emerald-400 hover:text-emerald-600'
                           }`}
                         >
                           {slot}
@@ -434,7 +739,7 @@ export function Appointments() {
                 <select
                   value={bookType}
                   onChange={e => setBookType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option>In-Person</option>
                   <option>Video Call</option>
@@ -449,7 +754,7 @@ export function Appointments() {
                   value={bookReason}
                   onChange={e => setBookReason(e.target.value)}
                   placeholder="e.g. Annual checkup, Follow-up"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -459,7 +764,7 @@ export function Appointments() {
                 <button
                   onClick={handleBook}
                   disabled={createAppointment.isPending}
-                  className="flex-1 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                  className="flex-1 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
                 >
                   {createAppointment.isPending ? 'Booking...' : 'Confirm Booking'}
                 </button>
@@ -494,7 +799,7 @@ export function Appointments() {
                   value={rescheduleDate}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={e => { setRescheduleDate(e.target.value); setRescheduleTime(''); }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -514,8 +819,8 @@ export function Appointments() {
                             taken
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through border-gray-200'
                               : selected
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'border-gray-300 hover:border-blue-400 hover:text-blue-600'
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'border-gray-300 hover:border-emerald-400 hover:text-emerald-600'
                           }`}
                         >
                           {slot}
@@ -532,7 +837,7 @@ export function Appointments() {
                 <button
                   onClick={handleReschedule}
                   disabled={rescheduleAppointment.isPending}
-                  className="flex-1 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                  className="flex-1 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
                 >
                   {rescheduleAppointment.isPending ? 'Saving...' : 'Confirm Reschedule'}
                 </button>

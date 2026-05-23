@@ -1,22 +1,50 @@
-// ✅ IMPORTANT: All interfaces must have 'export' keyword!
-
-// User Models (Base type for everyone)
 export interface User {
-  id: string;              // Unique identifier (auto-generated)
-  name: string;            // Person's name
-  address: string;         // Where they live
-  createdAt: Date;         // When record was created
+  id: string;
+  name: string;
+  address: string;
+  createdAt: Date;
 }
 
-// Patient Model (extends User - has everything User has PLUS more)
+export interface Allergy {
+  substance: string;
+  reaction: string;
+  severity: 'Mild' | 'Moderate' | 'Severe' | 'Life-threatening';
+}
+
 export interface Patient extends User {
-  conditions: string[];    // Array of conditions (e.g., ["Diabetes", "Hypertension"])
-  diagnosis: string;       // Current diagnosis
-  totalCost: number;       // Total money spent on this patient
-  medicalHistory: Task[];  // All tasks/costs for this patient
+  conditions: string[];
+  diagnosis: string;
+  totalCost: number;
+  medicalHistory: Task[];
+  // Demographics
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  bloodType?: string;
+  email?: string;
+  // Clinical
+  allergies: Allergy[];
+  // Emergency contact
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
 }
 
-// Staff Model (Doctor, Radiologist, Admin)
+export interface Vital {
+  id: string;
+  patientId: string;
+  recordedAt: Date;
+  recordedBy: string;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  heartRate?: number;
+  temperature?: number;
+  oxygenSaturation?: number;
+  weight?: number;
+  height?: number;
+  notes?: string;
+}
+
 export interface Staff extends User {
   role: 'radiologist' | 'doctor' | 'admin' | 'receptionist';
   specialization: string;
@@ -26,41 +54,72 @@ export interface Staff extends User {
   last_seen?: Date;
 }
 
-// Medical Image Model
 export interface MedicalImage {
   id: string;
-  patientID: string;           // Which patient is this for
-  uploadedAt: Date;            // When it was uploaded
-  uploadedBy: string;          // Which staff member uploaded it
-  type: 'MRI' | 'CT' | 'Xray'; // What type of scan
-  diseaseClassification: string; // What disease does it show
-  imageUrl?: string;         // URL to access the image
+  patientID: string;
+  uploadedAt: Date;
+  uploadedBy: string;
+  type: 'MRI' | 'CT' | 'Xray';
+  diseaseClassification: string;
+  imageUrl?: string;
 }
 
-// Task Model (A unit of work that costs money)
 export interface Task {
   id: string;
-  patientID: string;    // Which patient
-  description: string;  // What was done (e.g., "MRI Scan")
-  cost: number;         // How much it costs (in pounds)
-  timestamp: Date;      // When it happened
+  patientID: string;
+  description: string;
+  cost: number;
+  timestamp: Date;
 }
 
-// API Response (Standard format for all responses)
 export interface APIResponse<T> {
-  success: boolean;     // Did it work?
-  data?: T;            // The actual data (if success is true)
-  error?: string;      // Error message (if success is false)
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
-// DTO (Data Transfer Object) for creating patients
 export interface CreatePatientDTO {
   name: string;
   address: string;
   conditions: string[];
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  bloodType?: string;
+  allergies?: Allergy[];
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
 }
 
-// DTO for creating staff
+export interface UpdatePatientDTO {
+  name?: string;
+  address?: string;
+  diagnosis?: string;
+  conditions?: string[];
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  bloodType?: string;
+  allergies?: Allergy[];
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
+}
+
+export interface CreateVitalDTO {
+  patientId: string;
+  recordedBy: string;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  heartRate?: number;
+  temperature?: number;
+  oxygenSaturation?: number;
+  weight?: number;
+  height?: number;
+  notes?: string;
+}
+
 export interface CreateStaffDTO {
   name: string;
   address: string;
@@ -68,7 +127,6 @@ export interface CreateStaffDTO {
   specialization: string;
 }
 
-// DTO for uploading images
 export interface UploadImageDTO {
   patientID: string;
   imageType: 'MRI' | 'CT' | 'Xray' | 'DICOM';
@@ -77,14 +135,12 @@ export interface UploadImageDTO {
   imageUrl?: string;
 }
 
-// DTO for recording tasks
 export interface RecordTaskDTO {
   patientID: string;
   description: string;
   cost: number;
 }
 
-// Cost Report
 export interface CostReport {
   patientID: string;
   tasks: Task[];
@@ -92,7 +148,6 @@ export interface CostReport {
   generatedAt: Date;
 }
 
-// Patient History
 export interface PatientHistory {
   patient: Patient | null;
   medicalImages: MedicalImage[];
@@ -100,7 +155,6 @@ export interface PatientHistory {
   totalCost: number;
 }
 
-// Diagnostic Report
 export interface DiagnosticReport {
   patientName: string;
   patientID: string;

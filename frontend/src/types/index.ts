@@ -6,11 +6,44 @@ export interface User {
   createdAt: Date;
 }
 
+export interface Allergy {
+  substance: string;
+  reaction: string;
+  severity: 'Mild' | 'Moderate' | 'Severe' | 'Life-threatening';
+}
+
 export interface Patient extends User {
   conditions: string[];
   diagnosis: string;
   totalCost: number;
   medicalHistory: Task[];
+  // Demographics
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  bloodType?: string;
+  email?: string;
+  // Clinical
+  allergies: Allergy[];
+  // Emergency contact
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
+}
+
+export interface Vital {
+  id: string;
+  patientId: string;
+  recordedAt: string;
+  recordedBy: string;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  heartRate?: number;
+  temperature?: number;
+  oxygenSaturation?: number;
+  weight?: number;
+  height?: number;
+  notes?: string;
 }
 
 export interface Staff extends User {
@@ -74,6 +107,14 @@ export interface CreatePatientDTO {
   name: string;
   address: string;
   conditions: string[];
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  bloodType?: string;
+  allergies?: Allergy[];
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
 }
 
 export interface UpdatePatientDTO {
@@ -81,6 +122,27 @@ export interface UpdatePatientDTO {
   address?: string;
   diagnosis?: string;
   conditions?: string[];
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  bloodType?: string;
+  allergies?: Allergy[];
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
+}
+
+export interface CreateVitalDTO {
+  patientId: string;
+  recordedBy: string;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  heartRate?: number;
+  temperature?: number;
+  oxygenSaturation?: number;
+  weight?: number;
+  height?: number;
+  notes?: string;
 }
 
 export interface CreateStaffDTO {

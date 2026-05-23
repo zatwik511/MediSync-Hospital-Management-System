@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { CalendarDays, Users, Clock, CalendarPlus } from 'lucide-react';
+import { CalendarDays, Users, Clock } from 'lucide-react';
 import { useAppointments, useDoctors, useCancelAppointment } from '../../hooks/useAppointments';
 import { usePatients } from '../../hooks/usePatients';
 import { formatRelativeTime } from '../../utils/time';
@@ -26,20 +25,20 @@ export function DoctorDashboard({ user }: { user: AuthUser }) {
     ? allAppointments.filter(a => a.doctorID === doctorID)
     : [];
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrow = tomorrowDate.toISOString().split('T')[0];
+  const tomorrow = tomorrowDate.toLocaleDateString('en-CA');
 
   const todayLabel    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const tomorrowLabel = tomorrowDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const todaySchedule = myAppointments
-    .filter(a => a.date === today && a.status !== 'Cancelled')
+    .filter(a => a.date.split('T')[0] === today && a.status !== 'Cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const tomorrowSchedule = myAppointments
-    .filter(a => a.date === tomorrow && a.status !== 'Cancelled')
+    .filter(a => a.date.split('T')[0] === tomorrow && a.status !== 'Cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const uniquePatients = new Set(
@@ -62,13 +61,6 @@ export function DoctorDashboard({ user }: { user: AuthUser }) {
               <p className="text-sm text-gray-400 mt-0.5">{matchedDoctor.specialty}</p>
             )}
           </div>
-          <Link
-            to="/appointments"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            <CalendarPlus className="w-4 h-4" />
-            Book Appointment
-          </Link>
         </div>
 
         {/* Stats */}
@@ -78,21 +70,21 @@ export function DoctorDashboard({ user }: { user: AuthUser }) {
               <CalendarDays size={24} />
             </div>
             <p className="text-gray-600 text-sm font-medium">Appointments Today</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{isLoading ? '—' : todaySchedule.length}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1 font-display tabular-nums">{isLoading ? '—' : todaySchedule.length}</p>
           </div>
           <div className="card p-6">
             <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-teal-100 text-teal-600">
               <Users size={24} />
             </div>
             <p className="text-gray-600 text-sm font-medium">Patients Seen</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{isLoading ? '—' : uniquePatients}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1 font-display tabular-nums">{isLoading ? '—' : uniquePatients}</p>
           </div>
           <div className="card p-6">
             <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-indigo-100 text-indigo-600">
               <Clock size={24} />
             </div>
             <p className="text-gray-600 text-sm font-medium">Total Appointments</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{isLoading ? '—' : myAppointments.filter(a => a.status !== 'Cancelled').length}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1 font-display tabular-nums">{isLoading ? '—' : myAppointments.filter(a => a.status !== 'Cancelled').length}</p>
           </div>
         </div>
 

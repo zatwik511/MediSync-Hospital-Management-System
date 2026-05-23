@@ -13,14 +13,14 @@ import { Navigation } from './components/Navigation';
 import { Dashboard } from './pages/Dashboard';
 import { PatientManagement } from './pages/PatientManagement';
 import { PatientDetails } from './pages/PatientDetails';
-import { ImageManagement } from './pages/ImageManagement';
 import { StaffManagement } from './pages/StaffManagement';
-import { Reports } from './pages/Reports';
+import { Doctors } from './pages/Doctors';
 import { LandingPage } from './pages/LandingPage';
 import { Login } from './pages/Login';
 import { PatientLogin } from './pages/PatientLogin';
 import { Appointments } from './pages/Appointments';
 import { AuditLog } from './pages/AuditLog';
+import { MySchedule } from './pages/MySchedule';
 import { BookAppointment } from './pages/patient/BookAppointment';
 import { MyAppointments } from './pages/patient/MyAppointments';
 import { MyRecords } from './pages/patient/MyRecords';
@@ -130,6 +130,16 @@ function App() {
             }
           />
 
+          {/* PROTECTED — My Schedule (doctor only) */}
+          <Route
+            path="/my-schedule"
+            element={
+              <ProtectedRoute module="my-schedule">
+                <ProtectedLayout><MySchedule /></ProtectedLayout>
+              </ProtectedRoute>
+            }
+          />
+
           {/* PROTECTED — Appointments */}
           <Route
             path="/appointments"
@@ -140,12 +150,12 @@ function App() {
             }
           />
 
-          {/* PROTECTED — Images (admin + doctor only) */}
+          {/* PROTECTED — Doctors (admin + doctor) */}
           <Route
-            path="/images"
+            path="/doctors"
             element={
-              <ProtectedRoute module="images">
-                <ProtectedLayout><ImageManagement /></ProtectedLayout>
+              <ProtectedRoute module="doctors">
+                <ProtectedLayout><Doctors /></ProtectedLayout>
               </ProtectedRoute>
             }
           />
@@ -156,16 +166,6 @@ function App() {
             element={
               <ProtectedRoute module="staff">
                 <ProtectedLayout><StaffManagement /></ProtectedLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* PROTECTED — Reports (admin + doctor only) */}
-          <Route
-            path="/reports"
-            element={
-              <ProtectedRoute module="reports">
-                <ProtectedLayout><Reports /></ProtectedLayout>
               </ProtectedRoute>
             }
           />

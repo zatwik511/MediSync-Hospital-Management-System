@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarPlus } from 'lucide-react';
 import { PatientLayout } from '../../components/PatientLayout';
@@ -51,7 +51,7 @@ export function BookAppointment() {
     <PatientLayout>
       <div className="max-w-xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <CalendarPlus className="w-6 h-6 text-blue-600" />
+          <CalendarPlus className="w-6 h-6 text-emerald-600" />
           <h1 className="text-2xl font-bold text-gray-900">Book an Appointment</h1>
         </div>
 
@@ -63,12 +63,12 @@ export function BookAppointment() {
               <select
                 value={doctorID}
                 onChange={e => { setDoctorID(e.target.value); setTime(''); }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               >
                 <option value="">Select a doctor</option>
                 {doctors?.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} — {d.specialty}</option>
+                  <option key={d.id} value={d.id}>{d.name} â€” {d.specialty}</option>
                 ))}
               </select>
             </div>
@@ -81,7 +81,7 @@ export function BookAppointment() {
                 value={date}
                 min={today}
                 onChange={e => { setDate(e.target.value); setTime(''); }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
             </div>
@@ -111,8 +111,8 @@ export function BookAppointment() {
                           taken
                             ? 'bg-gray-50 text-gray-300 cursor-not-allowed line-through border-gray-200'
                             : selected
-                            ? 'bg-blue-600 text-white border-blue-600 font-medium'
-                            : 'border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-600'
+                            ? 'bg-emerald-600 text-white border-emerald-600 font-medium'
+                            : 'border-gray-300 text-gray-700 hover:border-emerald-400 hover:text-emerald-600'
                         }`}
                       >
                         {slot}
@@ -129,7 +129,7 @@ export function BookAppointment() {
               <select
                 value={type}
                 onChange={e => setType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option>In-Person</option>
                 <option>Video Call</option>
@@ -145,7 +145,7 @@ export function BookAppointment() {
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 placeholder="e.g. Annual checkup, follow-up visit"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -157,9 +157,9 @@ export function BookAppointment() {
               <button
                 type="submit"
                 disabled={createAppointment.isPending || !time}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
               >
-                {createAppointment.isPending ? 'Booking…' : 'Confirm Booking'}
+                {createAppointment.isPending ? 'Bookingâ€¦' : 'Confirm Booking'}
               </button>
               <button
                 type="button"

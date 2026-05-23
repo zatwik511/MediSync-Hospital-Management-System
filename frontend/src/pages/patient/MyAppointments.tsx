@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CalendarPlus, X } from 'lucide-react';
 import { PatientLayout } from '../../components/PatientLayout';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -36,12 +36,12 @@ export function MyAppointments() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Appointments</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            {upcoming.length} upcoming · {past.length} past
+            {upcoming.length} upcoming Â· {past.length} past
           </p>
         </div>
         <button
           onClick={() => navigate('/patient/book-appointment')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium transition-colors"
         >
           <CalendarPlus className="w-4 h-4" />
           Book New
@@ -57,7 +57,7 @@ export function MyAppointments() {
             <p className="text-sm">No upcoming appointments.</p>
             <button
               onClick={() => navigate('/patient/book-appointment')}
-              className="mt-3 text-blue-600 hover:underline text-sm"
+              className="mt-3 text-emerald-600 hover:underline text-sm"
             >
               Book one now
             </button>
@@ -91,7 +91,7 @@ export function MyAppointments() {
   );
 }
 
-// ── Card ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CardProps {
   appointment: {

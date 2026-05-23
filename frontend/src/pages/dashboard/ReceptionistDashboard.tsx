@@ -16,24 +16,24 @@ export function ReceptionistDashboard({ user }: { user: AuthUser }) {
   const lastLoginIso  = localStorage.getItem('lastLogin');
   const lastLoginText = lastLoginIso ? formatRelativeTime(lastLoginIso) : null;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrow = tomorrowDate.toISOString().split('T')[0];
+  const tomorrow = tomorrowDate.toLocaleDateString('en-CA');
 
   const in7Days = new Date();
   in7Days.setDate(in7Days.getDate() + 7);
-  const next7 = in7Days.toISOString().split('T')[0];
+  const next7 = in7Days.toLocaleDateString('en-CA');
 
   const todayLabel    = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const tomorrowLabel = tomorrowDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const todaySchedule = allAppointments
-    .filter(a => a.date === today && a.status !== 'Cancelled')
+    .filter(a => a.date.split('T')[0] === today && a.status !== 'Cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const tomorrowSchedule = allAppointments
-    .filter(a => a.date === tomorrow && a.status !== 'Cancelled')
+    .filter(a => a.date.split('T')[0] === tomorrow && a.status !== 'Cancelled')
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const upcomingCount = allAppointments.filter(
@@ -73,21 +73,21 @@ export function ReceptionistDashboard({ user }: { user: AuthUser }) {
               <CalendarDays size={24} />
             </div>
             <p className="text-gray-600 text-sm font-medium">Appointments Today</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{isLoading ? '—' : todaySchedule.length}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1 font-display tabular-nums">{isLoading ? '—' : todaySchedule.length}</p>
           </div>
           <div className="card p-6">
             <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-teal-100 text-teal-600">
               <Users size={24} />
             </div>
             <p className="text-gray-600 text-sm font-medium">Patients Today</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{isLoading ? '—' : checkedInCount}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1 font-display tabular-nums">{isLoading ? '—' : checkedInCount}</p>
           </div>
           <div className="card p-6">
             <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-purple-100 text-purple-600">
               <CalendarRange size={24} />
             </div>
             <p className="text-gray-600 text-sm font-medium">Upcoming (7 days)</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{isLoading ? '—' : upcomingCount}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1 font-display tabular-nums">{isLoading ? '—' : upcomingCount}</p>
           </div>
         </div>
 

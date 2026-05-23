@@ -1,11 +1,11 @@
-import { PatientLayout } from '../../components/PatientLayout';
+﻿import { PatientLayout } from '../../components/PatientLayout';
 import { usePatientProfile, usePatientImageRecords, usePatientFinancial, useMyAppointments } from '../../hooks/usePatientPortal';
 import { FileText, Image, DollarSign, Calendar } from 'lucide-react';
 
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-4">
-      <span className="text-blue-600">{icon}</span>
+      <span className="text-emerald-600">{icon}</span>
       <h2 className="text-base font-semibold text-gray-800">{title}</h2>
     </div>
   );
@@ -45,7 +45,7 @@ export function MyRecords() {
     return (
       <PatientLayout>
         <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
         </div>
       </PatientLayout>
     );
@@ -67,7 +67,7 @@ export function MyRecords() {
               </div>
               <div>
                 <dt className="text-gray-500">Address</dt>
-                <dd className="font-medium text-gray-900 mt-0.5">{profile.address || '—'}</dd>
+                <dd className="font-medium text-gray-900 mt-0.5">{profile.address || 'â€”'}</dd>
               </div>
               <div>
                 <dt className="text-gray-500">Current Diagnosis</dt>
@@ -79,7 +79,7 @@ export function MyRecords() {
                   {profile.conditions && profile.conditions.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {profile.conditions.map((c, i) => (
-                        <span key={i} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                        <span key={i} className="bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full">
                           {c}
                         </span>
                       ))}
@@ -152,7 +152,7 @@ export function MyRecords() {
                       <tr key={task.id}>
                         <td className="py-2.5 text-gray-700">{task.description}</td>
                         <td className="py-2.5 text-right font-medium text-gray-800">
-                          £{Number(task.cost).toFixed(2)}
+                          Â£{Number(task.cost).toFixed(2)}
                         </td>
                       </tr>
                     ))}
@@ -161,7 +161,7 @@ export function MyRecords() {
               </div>
               <div className="flex justify-end border-t border-gray-200 pt-3">
                 <span className="text-sm font-semibold text-gray-900">
-                  Total: £{Number(financial.totalCost).toFixed(2)}
+                  Total: Â£{Number(financial.totalCost).toFixed(2)}
                 </span>
               </div>
             </>
@@ -183,7 +183,7 @@ export function MyRecords() {
                       <p className="text-sm font-medium text-gray-800">
                         {appt.doctorName ?? 'Doctor'}
                         {appt.doctorSpecialty && (
-                          <span className="text-gray-400 font-normal"> · {appt.doctorSpecialty}</span>
+                          <span className="text-gray-400 font-normal"> Â· {appt.doctorSpecialty}</span>
                         )}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
@@ -191,7 +191,7 @@ export function MyRecords() {
                           weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
                         })}{' '}
                         at {appt.time}
-                        {appt.type && ` · ${appt.type}`}
+                        {appt.type && ` Â· ${appt.type}`}
                       </p>
                       {appt.reason && (
                         <p className="text-xs text-gray-400 mt-0.5 italic">"{appt.reason}"</p>

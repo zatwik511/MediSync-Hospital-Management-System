@@ -1,5 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, CalendarPlus, FileText, LogOut } from 'lucide-react';
+﻿import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Calendar, CalendarPlus, FileText, LogOut, Activity } from 'lucide-react';
 
 interface PatientLayoutProps {
   children: React.ReactNode;
@@ -19,17 +19,23 @@ export function PatientLayout({ children }: PatientLayoutProps) {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
       isActive
-        ? 'bg-blue-100 text-blue-700'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        ? 'bg-emerald-500/15 text-emerald-400'
+        : 'text-zinc-300 hover:text-white hover:bg-zinc-800'
     }`;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top nav */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <nav className="bg-zinc-900 shadow-lg">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
-            <span className="font-bold text-gray-900 text-base">MediSync Patient Portal</span>
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-emerald-500 rounded-md flex items-center justify-center">
+                <Activity className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="font-bold text-white text-sm tracking-tight font-display">MediSync</span>
+            </div>
+            {/* Nav links */}
             <div className="flex items-center gap-1">
               <NavLink to="/patient/dashboard" className={linkClass}>
                 <LayoutDashboard className="w-4 h-4" />
@@ -50,10 +56,10 @@ export function PatientLayout({ children }: PatientLayoutProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">{name}</span>
+            <span className="text-sm text-zinc-400">{name}</span>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-700 px-2 py-1.5 rounded-md hover:bg-red-50 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-red-400 px-2 py-1.5 rounded-md hover:bg-zinc-800 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Sign out
@@ -62,7 +68,6 @@ export function PatientLayout({ children }: PatientLayoutProps) {
         </div>
       </nav>
 
-      {/* Page content */}
       <main className="max-w-5xl mx-auto px-4 py-8">
         {children}
       </main>

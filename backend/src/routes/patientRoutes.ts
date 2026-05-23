@@ -59,6 +59,16 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/patients/:id — update full patient profile
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const patient = await patientService.updatePatient(req.params.id, req.body, req.staffID);
+    res.json({ success: true, data: patient });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // PUT /api/patients/:id/diagnosis
 router.put('/:id/diagnosis', async (req: Request, res: Response) => {
   try {

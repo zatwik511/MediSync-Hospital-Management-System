@@ -8,7 +8,11 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+
+  h1 {
+    font-family: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif;
   }
 }
 
@@ -34,7 +38,7 @@
   }
 
   .section-heading {
-    @apply text-2xl font-bold text-gray-900 mb-6;
+    @apply text-2xl font-bold text-gray-900 mb-6 font-display;
   }
 
   .form-group {

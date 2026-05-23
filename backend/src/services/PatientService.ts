@@ -1,19 +1,34 @@
 import { pool } from '../database/db';
-import { Patient, CreatePatientDTO } from '../models/types';
+import { Patient, CreatePatientDTO, UpdatePatientDTO } from '../models/types';
 import { auditService } from './AuditService';
 import { notificationService } from './NotificationService';
 
 export class PatientService {
 
   async createPatient(data: CreatePatientDTO, staffId = ''): Promise<Patient> {
-    const { name, address, conditions } = data;
+    const {
+      name, address, conditions,
+      dateOfBirth, gender, phone, bloodType, allergies,
+      emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
+    } = data;
+
     const result = await pool.query(
-      `INSERT INTO patients (name, address, conditions, diagnosis, "totalCost", "medicalHistory", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO patients (
+         name, address, conditions, diagnosis, "totalCost", "medicalHistory",
+         date_of_birth, gender, phone, blood_type, allergies,
+         emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
+         "createdAt"
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW())
        RETURNING *`,
-      [name, address, conditions || [], '', 0, []]
+      [
+        name, address, conditions || [], '', 0, [],
+        dateOfBirth || null, gender || null, phone || null, bloodType || null,
+        JSON.stringify(allergies || []),
+        emergencyContactName || null, emergencyContactRelationship || null, emergencyContactPhone || null,
+      ]
     );
     const patient = result.rows[0] as Patient;
+
     await auditService.logAction({
       staffId,
       action: 'CREATE',
@@ -26,6 +41,45 @@ export class PatientService {
       `New patient registered: ${name}`,
       'success', 'patient', patient.id
     );
+
+    return patient;
+  }
+
+  async updatePatient(patientID: string, data: UpdatePatientDTO, staffId = ''): Promise<Patient> {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (data.name !== undefined)      { updates.push(`name = $${idx++}`);      values.push(data.name); }
+    if (data.address !== undefined)   { updates.push(`address = $${idx++}`);   values.push(data.address); }
+    if (data.diagnosis !== undefined) { updates.push(`diagnosis = $${idx++}`); values.push(data.diagnosis); }
+    if (data.conditions !== undefined){ updates.push(`conditions = $${idx++}`);values.push(data.conditions); }
+    if (data.dateOfBirth !== undefined)  { updates.push(`date_of_birth = $${idx++}`); values.push(data.dateOfBirth || null); }
+    if (data.gender !== undefined)       { updates.push(`gender = $${idx++}`);        values.push(data.gender || null); }
+    if (data.phone !== undefined)        { updates.push(`phone = $${idx++}`);         values.push(data.phone || null); }
+    if (data.bloodType !== undefined)    { updates.push(`blood_type = $${idx++}`);    values.push(data.bloodType || null); }
+    if (data.allergies !== undefined)    { updates.push(`allergies = $${idx++}`);     values.push(JSON.stringify(data.allergies)); }
+    if (data.emergencyContactName !== undefined)         { updates.push(`emergency_contact_name = $${idx++}`);         values.push(data.emergencyContactName || null); }
+    if (data.emergencyContactRelationship !== undefined) { updates.push(`emergency_contact_relationship = $${idx++}`); values.push(data.emergencyContactRelationship || null); }
+    if (data.emergencyContactPhone !== undefined)        { updates.push(`emergency_contact_phone = $${idx++}`);        values.push(data.emergencyContactPhone || null); }
+
+    if (updates.length === 0) throw new Error('No fields to update');
+
+    values.push(patientID);
+    const result = await pool.query(
+      `UPDATE patients SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values
+    );
+    if (!result.rows[0]) throw new Error('Patient not found');
+    const patient = result.rows[0] as Patient;
+
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'patient',
+      entityId: patientID,
+      description: `Updated profile for ${patient.name}`,
+    });
 
     return patient;
   }
@@ -96,13 +150,12 @@ export class PatientService {
     const patient = await pool.query(`SELECT name FROM patients WHERE id = $1`, [patientID]);
     const name = patient.rows[0]?.name || patientID;
 
-    // Warn about cascade-deleted related records before deletion
     const [imgRes, taskRes, apptRes] = await Promise.all([
       pool.query(`SELECT COUNT(*) FROM medical_images WHERE patient_id = $1`, [patientID]),
       pool.query(`SELECT COUNT(*) FROM tasks          WHERE patient_id = $1`, [patientID]),
       pool.query(`SELECT COUNT(*) FROM appointments   WHERE patient_id = $1`, [patientID]),
     ]);
-    const images = parseInt(imgRes.rows[0].count,  10);
+    const images = parseInt(imgRes.rows[0].count, 10);
     const tasks  = parseInt(taskRes.rows[0].count, 10);
     const appts  = parseInt(apptRes.rows[0].count, 10);
 
