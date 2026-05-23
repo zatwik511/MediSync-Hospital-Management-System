@@ -1,9 +1,10 @@
 import express, { Request, Response } from 'express';
 import { vitalService } from '../services/VitalService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// GET /api/vitals/:patientId
+// GET /api/vitals/:patientId — all roles
 router.get('/:patientId', async (req: Request, res: Response) => {
   try {
     const vitals = await vitalService.getVitals(req.params.patientId);
@@ -13,8 +14,8 @@ router.get('/:patientId', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/vitals
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/vitals — admin, doctor, receptionist
+router.post('/', requireRole('admin', 'doctor', 'receptionist'), async (req: Request, res: Response) => {
   try {
     const { patientId, recordedBy, ...rest } = req.body;
     if (!patientId) {
@@ -27,8 +28,8 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/vitals/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/vitals/:id — admin, doctor
+router.delete('/:id', requireRole('admin', 'doctor'), async (req: Request, res: Response) => {
   try {
     await vitalService.deleteVital(req.params.id);
     res.json({ success: true, message: 'Vital record deleted' });

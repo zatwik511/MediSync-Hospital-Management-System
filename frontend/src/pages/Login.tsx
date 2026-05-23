@@ -21,8 +21,7 @@ export function Login() {
         pin,
       });
       if (response.data.success) {
-        const { id, name, role, staff_code, last_login } = response.data.data;
-        localStorage.setItem('staffId',   id);
+        const { name, role, staff_code, last_login } = response.data.data;
         localStorage.setItem('staffName', name);
         localStorage.setItem('staffRole', role);
         localStorage.setItem('staffCode', staff_code);
@@ -119,12 +118,14 @@ export function Login() {
             </button>
           </form>
 
-          <div className="mt-8 p-4 bg-white border border-gray-200 rounded-lg text-xs text-gray-500 space-y-1">
-            <p className="font-semibold text-gray-600 mb-2">Default PIN for all accounts: 000000</p>
-            <p>ADM-001 - Admin User (full access)</p>
-            <p>DOC-001 - Dr. Sarah Chen (doctor)</p>
-            <p>REC-001 - Emma Clarke (receptionist)</p>
-          </div>
+          {import.meta.env.DEV && (
+            <div className="mt-8 p-4 bg-white border border-gray-200 rounded-lg text-xs text-gray-500 space-y-1">
+              <p className="font-semibold text-gray-600 mb-2">Default PIN for all accounts: 000000</p>
+              <p>ADM-001 - Admin User (full access)</p>
+              <p>DOC-001 - Dr. Sarah Chen (doctor)</p>
+              <p>REC-001 - Emma Clarke (receptionist)</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

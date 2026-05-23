@@ -1,9 +1,22 @@
 import express, { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { imageService } from '../services/ImageService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
+
+const ALLOWED_IMAGE_MIMETYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/bmp',
+  'image/tiff',
+  'image/webp',
+]);
+
+const DICOM_EXT = /\.(dcm|dicom|dic)$/i;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => { cb(null, 'uploads/'); },
@@ -18,14 +31,20 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const isImage = /\.(jpeg|jpg|png|gif|bmp|tiff|webp)$/i.test(ext);
-    const isDicom = /\.(dcm|dicom|dic)$/i.test(ext);
-    if (isImage || isDicom) return cb(null, true);
+
+    // DICOM: validate by extension only — MIME type is unreliable (often application/octet-stream)
+    if (DICOM_EXT.test(ext)) return cb(null, true);
+
+    // Images: require both a valid extension AND a recognised MIME type
+    const validExt = /\.(jpeg|jpg|png|gif|bmp|tiff|webp)$/i.test(ext);
+    const validMime = ALLOWED_IMAGE_MIMETYPES.has(file.mimetype);
+    if (validExt && validMime) return cb(null, true);
+
     cb(new Error('Only image and DICOM files are allowed'));
   },
 });
 
-// GET /api/images/count
+// GET /api/images/count — all roles
 router.get('/count', async (req: Request, res: Response) => {
   try {
     const count = await imageService.getTotalImageCount();
@@ -35,10 +54,17 @@ router.get('/count', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/images/upload
-router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
+// POST /api/images/upload — admin, doctor, radiologist
+router.post('/upload', requireRole('admin', 'doctor', 'radiologist'), upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+
+    // Secondary MIME type check — defence in depth in case fileFilter is bypassed
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (!DICOM_EXT.test(ext) && !ALLOWED_IMAGE_MIMETYPES.has(req.file.mimetype)) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, error: 'Invalid file type' });
+    }
 
     const { patientID, imageType, diseaseType } = req.body;
     const uploadedBy = req.staffID || 'unknown';
@@ -57,7 +83,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
   }
 });
 
-// GET /api/images/patient/:patientID
+// GET /api/images/patient/:patientID — all roles
 router.get('/patient/:patientID', async (req: Request, res: Response) => {
   try {
     const images = await imageService.getImagesByPatient(req.params.patientID, req.staffID);
@@ -67,8 +93,8 @@ router.get('/patient/:patientID', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/images/:id/classify
-router.put('/:id/classify', async (req: Request, res: Response) => {
+// PUT /api/images/:id/classify — admin, doctor, radiologist
+router.put('/:id/classify', requireRole('admin', 'doctor', 'radiologist'), async (req: Request, res: Response) => {
   try {
     const { imageType, diseaseType } = req.body;
     const image = await imageService.classifyImage(req.params.id, imageType, diseaseType, req.staffID);
@@ -79,8 +105,8 @@ router.put('/:id/classify', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/images/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/images/:id — admin, radiologist
+router.delete('/:id', requireRole('admin', 'radiologist'), async (req: Request, res: Response) => {
   try {
     await imageService.deleteImage(req.params.id, req.staffID);
     res.json({ success: true });

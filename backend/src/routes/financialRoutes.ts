@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
 import { financialService } from '../services/FinancialService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// POST /api/financial/task
-router.post('/task', async (req: Request, res: Response) => {
+// POST /api/financial/task — admin only
+router.post('/task', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const { patientID, description, cost } = req.body;
     if (!patientID || !description || cost === undefined) {
@@ -23,8 +24,8 @@ router.post('/task', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/financial/cost/:patientID
-router.get('/cost/:patientID', async (req: Request, res: Response) => {
+// GET /api/financial/cost/:patientID — admin only
+router.get('/cost/:patientID', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const totalCost = await financialService.calculateTotalCost(req.params.patientID);
     res.json({ success: true, data: totalCost });
@@ -33,8 +34,8 @@ router.get('/cost/:patientID', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/financial/report/:patientID
-router.get('/report/:patientID', async (req: Request, res: Response) => {
+// GET /api/financial/report/:patientID — admin only
+router.get('/report/:patientID', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const report = await financialService.generateCostReport(req.params.patientID, req.staffID);
     res.json({ success: true, data: report });

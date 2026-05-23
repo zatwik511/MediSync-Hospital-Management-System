@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../database/db';
 import { Staff, CreateStaffDTO } from '../models/types';
 import { auditService } from './AuditService';
+import { AccountLockedError } from './PatientAuthService';
 
 const ROLE_PREFIX: Record<string, string> = {
   doctor:       'DOC',
@@ -10,7 +11,18 @@ const ROLE_PREFIX: Record<string, string> = {
   radiologist:  'RAD',
 };
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
 export class StaffService {
+
+  async ensureColumns(): Promise<void> {
+    await pool.query(`
+      ALTER TABLE staff
+        ADD COLUMN IF NOT EXISTS failed_pin_attempts INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ
+    `);
+  }
 
   private async generateStaffCode(role: string): Promise<string> {
     const prefix = ROLE_PREFIX[role] || 'STF';
@@ -59,14 +71,36 @@ export class StaffService {
   }
 
   async verifyLogin(staffCode: string, pin: string): Promise<Staff | null> {
-    const result = await pool.query(`SELECT * FROM staff WHERE staff_code = $1`, [staffCode]);
+    const result = await pool.query(
+      `SELECT * FROM staff WHERE staff_code = $1`,
+      [staffCode]
+    );
     const row = result.rows[0];
     if (!row || !row.pin) return null;
 
-    const valid = await bcrypt.compare(pin, row.pin);
-    if (!valid) return null;
+    if (row.locked_until && new Date(row.locked_until) > new Date()) {
+      throw new AccountLockedError();
+    }
 
-    const { pin: _pin, ...staff } = row;
+    const valid = await bcrypt.compare(pin, row.pin);
+
+    if (!valid) {
+      const attempts = (row.failed_pin_attempts ?? 0) + 1;
+      const lockedUntil = attempts >= MAX_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
+      await pool.query(
+        `UPDATE staff SET failed_pin_attempts = $1, locked_until = $2 WHERE id = $3`,
+        [attempts, lockedUntil, row.id]
+      );
+      return null;
+    }
+
+    // Successful login — reset counters
+    await pool.query(
+      `UPDATE staff SET failed_pin_attempts = 0, locked_until = NULL WHERE id = $1`,
+      [row.id]
+    );
+
+    const { pin: _pin, failed_pin_attempts: _fa, locked_until: _lu, ...staff } = row;
     return staff as Staff;
   }
 

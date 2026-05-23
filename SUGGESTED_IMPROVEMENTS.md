@@ -6,56 +6,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 1. Critical Security Issues
 
-### 1.1 Header-based auth with no role validation on routes
-- **Files:** `backend/src/routes/appointmentRoutes.ts`, `patientRoutes.ts`, `staffRoutes.ts`, `doctorRoutes.ts`, `imageRoutes.ts`, `auditRoutes.ts`
-- **Problem:** Routes only verify that `x-staff-id` header is present (via `authMiddleware`). There is no check that the caller's *role* is permitted to perform the operation. A receptionist can call a delete-staff or delete-doctor endpoint directly with curl.
-- **Fix:** Add role guards to each route — e.g., `requireRole('admin')` middleware that reads `req.staff.role` and returns 403 if unauthorized. Backend must be the authority on permissions; client-side `canAccess()` only hides UI.
-
-### 1.2 Plain header tokens — no cryptographic verification
-- **Files:** `backend/src/middleware/authMiddleware.ts`, `frontend/src/api/client.ts`
-- **Problem:** `x-staff-id` is a plain number stored in `localStorage`. Any script on the page (XSS) can read it, and there is nothing stopping a user from changing it to impersonate another staff member. The backend trusts it without verification.
-- **Fix:** Replace with JWT tokens signed with a server secret. Store the JWT in an `httpOnly` cookie (not `localStorage`) to prevent XSS access. Verify signature on every request.
-
-### 1.3 SSL certificate validation disabled
-- **File:** `backend/src/database/db.ts:17`
-- **Problem:** `ssl: { rejectUnauthorized: false }` disables certificate verification and allows man-in-the-middle attacks on the database connection.
-- **Fix:** Set `rejectUnauthorized: true` and supply the CA certificate, or configure the connection URL with `sslmode=verify-full`.
-
-### 1.4 No rate limiting on auth endpoints
-- **File:** `backend/src/app.ts`, `backend/src/routes/patientAuthRoutes.ts`
-- **Problem:** No rate limiting on `/api/auth/login` or `/api/patient-auth/login`. Brute-force attacks on the 6-digit PIN (1 million combinations) are trivially possible.
-- **Fix:** Add `express-rate-limit` middleware with a short window (e.g., 5 attempts per 15 minutes per IP) on all auth routes.
-
-### 1.5 Error messages expose internal details
-- **File:** `backend/src/middleware/errorHandler.ts`
-- **Problem:** Raw error messages (potentially containing SQL, schema names, or stack traces) are sent directly to the client in non-production environments and partially in production.
-- **Fix:** Log full errors server-side (structured logging). Return only generic messages to clients: `{ "error": "An unexpected error occurred" }`.
-
-### 1.6 CORS origin validation could be tightened
-- **File:** `backend/src/app.ts:30–48`
-- **Problem:** Localhost regex is permissive. The production URL is hard-coded as a string. If the production domain ever changes or a subdomain is compromised, this becomes an attack surface.
-- **Fix:** Move allowed origins to an environment variable (`ALLOWED_ORIGINS=https://...`), validate strictly against the whitelist.
-
-### 1.7 Hardcoded demo credentials in login UI
-- **File:** `frontend/src/pages/Login.tsx`
-- **Problem:** Demo staff IDs and default PINs are rendered in the UI unconditionally. In production these are a guide for attackers.
-- **Fix:** Gate the demo credentials block on `import.meta.env.DEV` so they are only shown in development builds.
-
-### 1.8 Weak PIN — no account lockout
-- **File:** `backend/src/services/PatientAuthService.ts`, `backend/src/routes/patientAuthRoutes.ts`
-- **Problem:** 6-digit PIN has only 1,000,000 combinations. There is no failed-attempt counter and no lockout.
-- **Fix:** Implement exponential backoff (or a failed-attempt counter with a lock duration) after N consecutive failures. Consider bcrypt-hashing PINs at rest.
-
-### 1.9 Client-side file type validation only
-- **File:** `frontend/src/components/ImageUploader.tsx`, `backend/src/routes/imageRoutes.ts`
-- **Problem:** The frontend validates accepted file types but the backend does not re-validate MIME type. A malicious actor can bypass the browser check and upload arbitrary files.
-- **Fix:** On the server, validate `req.file.mimetype` against an allowlist (`image/jpeg`, `image/png`, `image/gif`, `application/dicom`, etc.) before saving.
-
-### 1.10 Patient route ownership not enforced server-side
-- **File:** `backend/src/routes/patientAppointmentRoutes.ts`, `backend/src/routes/patientRecordRoutes.ts`
-- **Problem:** Patient-facing routes verify that `x-patient-id` is present but some do not verify that the requested resource belongs to that patient (e.g., fetching another patient's images by guessing a record ID).
-- **Fix:** Every patient-facing data query must include a `WHERE patient_id = $patientId` clause (or equivalent ownership check).
-
 ---
 
 ## 2. Data Integrity
@@ -316,7 +266,7 @@ This file captures all identified issues, technical debt, and improvement opport
 
 | Category | Item Count | Max Priority |
 |---|---|---|
-| Critical Security | 10 | Critical |
+| Critical Security | 0 | — |
 | Data Integrity | 6 | High |
 | Input Validation | 5 | High |
 | Performance | 5 | Medium |
@@ -324,19 +274,17 @@ This file captures all identified issues, technical debt, and improvement opport
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **55** | — |
+| **Total** | **45** | — |
 
 ---
 
 ## Recommended First Pass (Highest ROI)
 
-1. **#1.1** — Add role-based route guards on the backend
-2. **#2.1** — Fix the appointment double-booking race condition (DB unique constraint)
+1. **#2.1** — Fix the appointment double-booking race condition (DB unique constraint)
 3. **#2.2** — Replace doctor-staff name join with a `staff_id` foreign key
 4. **#2.3** — Await file deletion and handle failure
 5. **#2.4** — Add past-date validation on appointment create/reschedule
-6. **#1.4** — Add rate limiting on auth endpoints
-7. **#5.8** — Add a React error boundary
+6. **#5.8** — Add a React error boundary
 8. **#4.1** — Add pagination to audit log queries
 9. **#6.5** — Soft-delete pattern for patients and doctors
 10. **#8.3** — Add a basic CI pipeline (type-check + lint)

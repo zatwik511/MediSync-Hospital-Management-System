@@ -1,6 +1,16 @@
 import bcrypt from 'bcryptjs';
 import { pool } from '../database/db';
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+export class AccountLockedError extends Error {
+  constructor() {
+    super('Too many failed attempts. Account locked for 15 minutes.');
+    this.name = 'AccountLockedError';
+  }
+}
+
 interface PatientAuthResult {
   id: string;
   name: string;
@@ -8,6 +18,14 @@ interface PatientAuthResult {
 }
 
 export class PatientAuthService {
+
+  async ensureColumns(): Promise<void> {
+    await pool.query(`
+      ALTER TABLE patients
+        ADD COLUMN IF NOT EXISTS failed_pin_attempts INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ
+    `);
+  }
 
   async register(name: string, email: string, pin: string): Promise<PatientAuthResult> {
     if (!/^\d{6}$/.test(pin)) {
@@ -34,14 +52,34 @@ export class PatientAuthService {
 
   async login(email: string, pin: string): Promise<PatientAuthResult | null> {
     const result = await pool.query(
-      `SELECT id, name, email, pin FROM patients WHERE email = $1`,
+      `SELECT id, name, email, pin, failed_pin_attempts, locked_until FROM patients WHERE email = $1`,
       [email.toLowerCase()]
     );
     const row = result.rows[0];
     if (!row || !row.pin) return null;
 
+    // Check lockout before attempting bcrypt (prevents timing oracle on locked accounts)
+    if (row.locked_until && new Date(row.locked_until) > new Date()) {
+      throw new AccountLockedError();
+    }
+
     const valid = await bcrypt.compare(pin, row.pin);
-    if (!valid) return null;
+
+    if (!valid) {
+      const attempts = (row.failed_pin_attempts ?? 0) + 1;
+      const lockedUntil = attempts >= MAX_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
+      await pool.query(
+        `UPDATE patients SET failed_pin_attempts = $1, locked_until = $2 WHERE id = $3`,
+        [attempts, lockedUntil, row.id]
+      );
+      return null;
+    }
+
+    // Successful login — reset counters
+    await pool.query(
+      `UPDATE patients SET failed_pin_attempts = 0, locked_until = NULL WHERE id = $1`,
+      [row.id]
+    );
 
     return { id: row.id, name: row.name, email: row.email };
   }

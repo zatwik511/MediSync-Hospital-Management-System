@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
 import { reportService } from '../services/ReportService';
 import { pool } from '../database/db';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// GET /api/reports/patient/:patientID - Generate patient history
+// GET /api/reports/patient/:patientID — all roles
 router.get('/patient/:patientID', async (req: Request, res: Response) => {
   try {
     const patientID = req.params.patientID as string;
@@ -15,8 +16,8 @@ router.get('/patient/:patientID', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/reports/diagnostic/:patientID - Generate diagnostic report
-router.get('/diagnostic/:patientID', async (req: Request, res: Response) => {
+// GET /api/reports/diagnostic/:patientID — admin, doctor, radiologist
+router.get('/diagnostic/:patientID', requireRole('admin', 'doctor', 'radiologist'), async (req: Request, res: Response) => {
   try {
     const patientID = req.params.patientID as string;
     const report = await reportService.generateDiagnosticReport(patientID);
@@ -26,8 +27,8 @@ router.get('/diagnostic/:patientID', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/reports/appointment-analytics - Appointment stats for analytics tab
-router.get('/appointment-analytics', async (req: Request, res: Response) => {
+// GET /api/reports/appointment-analytics — admin only
+router.get('/appointment-analytics', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     // Total counts by status
     const statusResult = await pool.query(`
@@ -99,8 +100,8 @@ router.get('/appointment-analytics', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/reports/appointment-analytics/advanced
-router.get('/appointment-analytics/advanced', async (req: Request, res: Response) => {
+// GET /api/reports/appointment-analytics/advanced — admin only
+router.get('/appointment-analytics/advanced', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     // Busiest day of week (0=Sun … 6=Sat), non-cancelled only
     const dowResult = await pool.query(`

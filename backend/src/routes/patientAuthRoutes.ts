@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { patientAuthService } from '../services/PatientAuthService';
+import { patientAuthService, AccountLockedError } from '../services/PatientAuthService';
 
 const router = Router();
+
+patientAuthService.ensureColumns().catch(console.error);
 
 // POST /api/patient-auth/register
 router.post('/register', async (req: Request, res: Response) => {
@@ -34,8 +36,11 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Invalid email or PIN' });
     }
     return res.json({ success: true, data: patient });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    if (err instanceof AccountLockedError) {
+      return res.status(429).json({ success: false, error: err.message });
+    }
+    return res.status(500).json({ success: false, error: 'An unexpected error occurred' });
   }
 });
 

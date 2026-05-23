@@ -1,9 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { staffService } from '../services/StaffService';
 import { auditService } from '../services/AuditService';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware, signToken } from '../middleware/authMiddleware';
+import { AccountLockedError } from '../services/PatientAuthService';
+
+staffService.ensureColumns().catch(console.error);
 
 const router = Router();
+
+const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 8 * 60 * 60 * 1000, // 8 hours
+};
 
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response) => {
@@ -21,7 +31,6 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Invalid staff code or PIN' });
     }
 
-    // Record previous login time, then stamp last_seen = NOW()
     const lastLogin = await staffService.touchLastSeen(staff.id);
 
     await auditService.logAction({
@@ -33,6 +42,9 @@ router.post('/login', async (req: Request, res: Response) => {
       ipAddress: ip,
     });
 
+    const token = signToken(String(staff.id), staff.role);
+    res.cookie('token', token, COOKIE_OPTS);
+
     return res.json({
       success: true,
       data: {
@@ -43,8 +55,11 @@ router.post('/login', async (req: Request, res: Response) => {
         last_login: lastLogin ?? null,
       },
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    if (err instanceof AccountLockedError) {
+      return res.status(429).json({ success: false, error: (err as Error).message });
+    }
+    res.status(500).json({ success: false, error: 'An unexpected error occurred' });
   }
 });
 
@@ -61,6 +76,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
     ipAddress: ip,
   });
 
+  res.clearCookie('token', COOKIE_OPTS);
   res.json({ success: true });
 });
 

@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { prescriptionService } from '../services/PrescriptionService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = Router();
 
 // Bootstrap table on module load
 prescriptionService.ensureTable().catch(console.error);
 
-// GET /api/prescriptions/patient/:patientId
+// GET /api/prescriptions/patient/:patientId — all roles
 router.get('/patient/:patientId', async (req: Request, res: Response) => {
   try {
     const prescriptions = await prescriptionService.getByPatient(
@@ -19,8 +20,8 @@ router.get('/patient/:patientId', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/prescriptions
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/prescriptions — admin, doctor
+router.post('/', requireRole('admin', 'doctor'), async (req: Request, res: Response) => {
   try {
     const { patientId, medications, advice } = req.body;
 
@@ -46,8 +47,8 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/prescriptions/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/prescriptions/:id — admin, doctor
+router.delete('/:id', requireRole('admin', 'doctor'), async (req: Request, res: Response) => {
   try {
     await prescriptionService.delete(req.params.id, req.staffID ?? '');
     res.json({ success: true });

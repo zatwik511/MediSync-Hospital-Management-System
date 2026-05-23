@@ -1,6 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 
 // Routes
 import patientRoutes from './routes/patientRoutes';
@@ -27,27 +29,27 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 
 // 1. CORS
+const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow any localhost port in development, plus the production URL
-    const allowed = !origin
-      || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
-      || origin === 'https://image-management-system-for-abc-iug9.onrender.com';
-    callback(null, allowed ? origin : false);
+    // No origin = same-origin or non-browser request
+    if (!origin) return callback(null, true);
+    const allowed = LOCALHOST_ORIGIN.test(origin) || configuredOrigins.includes(origin);
+    callback(allowed ? null : new Error('Not allowed by CORS'), allowed ? origin : false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type',
-    'x-staff-id',
-    'x-patient-id',
-    'Authorization',
-    'Accept'
-  ],
+  allowedHeaders: ['Content-Type', 'x-patient-id', 'Authorization', 'Accept'],
   optionsSuccessStatus: 200
 }));
 
-// 2. JSON parsing
+// 2. Cookie parsing + JSON parsing
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -64,6 +66,16 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // 5. PUBLIC ROUTES (No Auth Required)
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many login attempts. Please try again in 15 minutes.' },
+});
+
+app.use('/api/auth/login', authRateLimiter);
+app.use('/api/patient-auth/login', authRateLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/patient-auth', patientAuthRoutes);
 

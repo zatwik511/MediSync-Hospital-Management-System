@@ -1,10 +1,10 @@
 import express, { Request, Response } from 'express';
 import { appointmentService } from '../services/AppointmentService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// GET /api/appointments          — returns all (unpaginated, used by dashboards)
-// GET /api/appointments?page=1&limit=20&search= — returns paginated
+// GET /api/appointments — all roles
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, limit, search = '' } = req.query as Record<string, string>;
@@ -21,7 +21,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/appointments/count
+// GET /api/appointments/count — all roles
 router.get('/count', async (req: Request, res: Response) => {
   try {
     const count = await appointmentService.getTotalAppointmentCount();
@@ -31,7 +31,7 @@ router.get('/count', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/appointments/doctors
+// GET /api/appointments/doctors — all roles
 router.get('/doctors', async (req: Request, res: Response) => {
   try {
     const doctors = await appointmentService.listDoctors();
@@ -41,7 +41,7 @@ router.get('/doctors', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/appointments/slots/:doctorID/:date
+// GET /api/appointments/slots/:doctorID/:date — all roles
 router.get('/slots/:doctorID/:date', async (req: Request, res: Response) => {
   try {
     const bookedSlots = await appointmentService.getBookedSlots(req.params.doctorID, req.params.date);
@@ -51,7 +51,7 @@ router.get('/slots/:doctorID/:date', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/appointments/patient/:patientID
+// GET /api/appointments/patient/:patientID — all roles
 router.get('/patient/:patientID', async (req: Request, res: Response) => {
   try {
     const appointments = await appointmentService.getAppointmentsByPatient(
@@ -63,7 +63,7 @@ router.get('/patient/:patientID', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/appointments/:id
+// GET /api/appointments/:id — all roles
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const appointment = await appointmentService.getAppointment(req.params.id, req.staffID);
@@ -74,8 +74,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/appointments
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/appointments — admin, receptionist
+router.post('/', requireRole('admin', 'receptionist'), async (req: Request, res: Response) => {
   try {
     const { patientID, doctorID, date, time, type, reason } = req.body;
     if (!patientID || !doctorID || !date || !time) {
@@ -93,8 +93,8 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/appointments/:id/reschedule
-router.put('/:id/reschedule', async (req: Request, res: Response) => {
+// PUT /api/appointments/:id/reschedule — admin, receptionist
+router.put('/:id/reschedule', requireRole('admin', 'receptionist'), async (req: Request, res: Response) => {
   try {
     const { date, time } = req.body;
     if (!date || !time) return res.status(400).json({ success: false, error: 'New date and time are required' });
@@ -109,8 +109,8 @@ router.put('/:id/reschedule', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/appointments/:id/cancel
-router.put('/:id/cancel', async (req: Request, res: Response) => {
+// PUT /api/appointments/:id/cancel — admin, receptionist, doctor
+router.put('/:id/cancel', requireRole('admin', 'receptionist', 'doctor'), async (req: Request, res: Response) => {
   try {
     await appointmentService.cancelAppointment(req.params.id, req.staffID);
     res.json({ success: true, message: 'Appointment cancelled successfully' });

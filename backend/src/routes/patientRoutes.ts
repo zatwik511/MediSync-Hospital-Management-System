@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
 import { patientService } from '../services/PatientService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// POST /api/patients
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/patients — admin, receptionist
+router.post('/', requireRole('admin', 'receptionist'), async (req: Request, res: Response) => {
   try {
     const { name, address, conditions } = req.body;
     if (!name || !address) {
@@ -20,7 +21,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/patients/:id
+// GET /api/patients/:id — all roles
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const patient = await patientService.getPatient(req.params.id, req.staffID);
@@ -31,8 +32,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/patients          — returns all (unpaginated)
-// GET /api/patients?page=1&limit=20&search= — returns paginated
+// GET /api/patients — all roles
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, limit, search = '' } = req.query as Record<string, string>;
@@ -49,8 +49,8 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/patients/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/patients/:id — admin only
+router.delete('/:id', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     await patientService.deletePatient(req.params.id, req.staffID);
     res.json({ success: true, message: 'Patient deleted successfully' });
@@ -59,8 +59,8 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/patients/:id — update full patient profile
-router.put('/:id', async (req: Request, res: Response) => {
+// PUT /api/patients/:id — admin, receptionist
+router.put('/:id', requireRole('admin', 'receptionist'), async (req: Request, res: Response) => {
   try {
     const patient = await patientService.updatePatient(req.params.id, req.body, req.staffID);
     res.json({ success: true, data: patient });
@@ -69,8 +69,8 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/patients/:id/diagnosis
-router.put('/:id/diagnosis', async (req: Request, res: Response) => {
+// PUT /api/patients/:id/diagnosis — admin, doctor
+router.put('/:id/diagnosis', requireRole('admin', 'doctor'), async (req: Request, res: Response) => {
   try {
     const { diagnosis } = req.body;
     if (!diagnosis) return res.status(400).json({ success: false, error: 'Diagnosis is required' });

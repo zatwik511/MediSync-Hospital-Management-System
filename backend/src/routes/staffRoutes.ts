@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
 import { staffService } from '../services/StaffService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// POST /api/staff
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/staff — admin only
+router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const { name, address, role, specialization } = req.body;
     if (!name || !address || !role) {
@@ -20,7 +21,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/staff
+// GET /api/staff — all roles
 router.get('/', async (req: Request, res: Response) => {
   try {
     const staff = await staffService.listStaff(req.staffID);
@@ -30,7 +31,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/staff/:id
+// GET /api/staff/:id — all roles
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const staff = await staffService.getStaff(req.params.id);
@@ -41,17 +42,13 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/staff/:id/reset-pin (admin only)
-router.post('/:id/reset-pin', async (req: Request, res: Response) => {
+// POST /api/staff/:id/reset-pin — admin only
+router.post('/:id/reset-pin', requireRole('admin'), async (req: Request, res: Response) => {
   try {
-    const adminOk = await staffService.isAdmin(req.staffID as string);
-    if (!adminOk) return res.status(403).json({ success: false, error: 'Admin access required' });
-
     const { newPin } = req.body;
     if (!newPin || !/^\d{6}$/.test(newPin)) {
       return res.status(400).json({ success: false, error: 'PIN must be exactly 6 digits' });
     }
-
     await staffService.resetPin(req.params.id, newPin, req.staffID);
     res.json({ success: true, message: 'PIN reset successfully' });
   } catch (error: any) {
@@ -59,8 +56,8 @@ router.post('/:id/reset-pin', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/staff/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/staff/:id — admin only
+router.delete('/:id', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     await staffService.deleteStaff(req.params.id, req.staffID);
     res.json({ success: true, message: 'Staff deleted successfully' });

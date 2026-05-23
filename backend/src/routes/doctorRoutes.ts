@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { pool } from '../database/db';
 import { auditService } from '../services/AuditService';
+import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ function transformRow(row: any) {
   };
 }
 
-// GET /api/doctors
+// GET /api/doctors — all roles
 router.get('/', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`SELECT * FROM doctors ORDER BY name ASC`);
@@ -24,8 +25,8 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/doctors
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/doctors — admin only
+router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const { name, specialty, availableDays } = req.body;
     if (!name?.trim() || !specialty?.trim()) {
@@ -50,8 +51,8 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/doctors/:id
-router.put('/:id', async (req: Request, res: Response) => {
+// PUT /api/doctors/:id — admin only
+router.put('/:id', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const { name, specialty, availableDays } = req.body;
     if (!name?.trim() || !specialty?.trim()) {
@@ -79,8 +80,8 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/doctors/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+// DELETE /api/doctors/:id — admin only
+router.delete('/:id', requireRole('admin'), async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
       `DELETE FROM doctors WHERE id = $1 RETURNING name`,

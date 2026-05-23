@@ -6,11 +6,14 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error('Error:', err);
+  // Full details logged server-side only
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, {
+    message: err.message,
+    stack: err.stack,
+  });
 
   res.status(500).json({
     success: false,
-    error: err.message || 'Internal server error',
-    timestamp: new Date(),
+    error: 'An unexpected error occurred',
   });
 };
