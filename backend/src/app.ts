@@ -96,7 +96,7 @@ app.use('*', (req: Request, res: Response) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 IMS Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 MediSync HMS Backend running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔑 Auth Service: http://localhost:${PORT}/api/auth/login`);
   console.log(`🖼️  Image uploads accessible at: http://localhost:${PORT}/uploads`);

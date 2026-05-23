@@ -29,7 +29,7 @@ export function PatientLayout({ children }: PatientLayoutProps) {
       <nav className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
-            <span className="font-bold text-gray-900 text-base">IMS Patient Portal</span>
+            <span className="font-bold text-gray-900 text-base">MediSync Patient Portal</span>
             <div className="flex items-center gap-1">
               <NavLink to="/patient/dashboard" className={linkClass}>
                 <LayoutDashboard className="w-4 h-4" />

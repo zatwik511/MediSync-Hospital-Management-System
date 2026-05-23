@@ -1,7 +1,7 @@
 {
-  "name": "ims-backend",
+  "name": "medisync-backend",
   "version": "1.0.0",
-  "description": "IMS Healthcare Backend - CI7250 Assignment",
+  "description": "MediSync Hospital Management System - Backend",
   "main": "dist/app.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
@@ -14,7 +14,8 @@
   },
   "keywords": [
     "healthcare",
-    "ims",
+    "medisync",
+    "hms",
     "supabase",
     "typescript",
     "express"
