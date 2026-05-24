@@ -6,17 +6,17 @@ import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// GET /api/reports/patient/:patientID — all roles
-router.get('/patient/:patientID', asyncHandler(async (req, res) => {
-    const patientID = req.params.patientID as string;
-    const report = await reportService.generatePatientHistory(patientID);
+// GET /api/reports/patient/:patientId — all roles
+router.get('/patient/:patientId', asyncHandler(async (req, res) => {
+    const patientId = req.params.patientId;
+    const report = await reportService.generatePatientHistory(patientId);
     res.json({ success: true, data: report });
 }));
 
-// GET /api/reports/diagnostic/:patientID — admin, doctor, radiologist
-router.get('/diagnostic/:patientID', requireRole('admin', 'doctor', 'radiologist'), asyncHandler(async (req, res) => {
-    const patientID = req.params.patientID as string;
-    const report = await reportService.generateDiagnosticReport(patientID);
+// GET /api/reports/diagnostic/:patientId — admin, doctor, radiologist
+router.get('/diagnostic/:patientId', requireRole('admin', 'doctor', 'radiologist'), asyncHandler(async (req, res) => {
+    const patientId = req.params.patientId;
+    const report = await reportService.generateDiagnosticReport(patientId);
     res.json({ success: true, data: report });
 }));
 

@@ -32,16 +32,16 @@ router.get('/doctors', asyncHandler(async (req, res) => {
     res.json({ success: true, data: doctors });
 }));
 
-// GET /api/appointments/slots/:doctorID/:date — all roles
-router.get('/slots/:doctorID/:date', asyncHandler(async (req, res) => {
-    const bookedSlots = await appointmentService.getBookedSlots(req.params.doctorID, req.params.date);
+// GET /api/appointments/slots/:doctorId/:date — all roles
+router.get('/slots/:doctorId/:date', asyncHandler(async (req, res) => {
+    const bookedSlots = await appointmentService.getBookedSlots(req.params.doctorId, req.params.date);
     res.json({ success: true, data: bookedSlots });
 }));
 
-// GET /api/appointments/patient/:patientID — all roles
-router.get('/patient/:patientID', asyncHandler(async (req, res) => {
+// GET /api/appointments/patient/:patientId — all roles
+router.get('/patient/:patientId', asyncHandler(async (req, res) => {
     const appointments = await appointmentService.getAppointmentsByPatient(
-      req.params.patientID, req.staffID
+      req.params.patientId, req.staffID
     );
     res.json({ success: true, data: appointments });
 }));

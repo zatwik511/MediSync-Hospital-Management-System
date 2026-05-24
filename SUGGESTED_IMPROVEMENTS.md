@@ -22,11 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.5 Inconsistent casing on route params
-- **Files:** `backend/src/routes/imageRoutes.ts` vs. others
-- **Problem:** Some routes use `patientID`, others use `patientId`. This causes subtle bugs when accessing `req.params`.
-- **Fix:** Standardize to `camelCase` (`patientId`) across all routes.
-
 ### 5.6 Hard-coded role-to-prefix mapping duplicated
 - **File:** `backend/src/services/StaffService.ts`
 - **Problem:** `ROLE_PREFIX` mapping (`{ admin: 'ADM', doctor: 'DOC', ... }`) is duplicated and may diverge from constants elsewhere.
@@ -165,11 +160,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 6 | Medium |
+| Code Quality | 5 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **25** | — |
+| **Total** | **24** | — |
 
 ---
 

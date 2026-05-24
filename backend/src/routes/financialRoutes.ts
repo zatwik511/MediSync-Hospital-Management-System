@@ -22,15 +22,15 @@ router.post('/task', requireRole('admin'), asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: task });
 }));
 
-// GET /api/financial/cost/:patientID — admin only
-router.get('/cost/:patientID', requireRole('admin'), asyncHandler(async (req, res) => {
-    const totalCost = await financialService.calculateTotalCost(req.params.patientID);
+// GET /api/financial/cost/:patientId — admin only
+router.get('/cost/:patientId', requireRole('admin'), asyncHandler(async (req, res) => {
+    const totalCost = await financialService.calculateTotalCost(req.params.patientId);
     res.json({ success: true, data: totalCost });
 }));
 
-// GET /api/financial/report/:patientID — admin only
-router.get('/report/:patientID', requireRole('admin'), asyncHandler(async (req, res) => {
-    const report = await financialService.generateCostReport(req.params.patientID, req.staffID);
+// GET /api/financial/report/:patientId — admin only
+router.get('/report/:patientId', requireRole('admin'), asyncHandler(async (req, res) => {
+    const report = await financialService.generateCostReport(req.params.patientId, req.staffID);
     res.json({ success: true, data: report });
 }));
 

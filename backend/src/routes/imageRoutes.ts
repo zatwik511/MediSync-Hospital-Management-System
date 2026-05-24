@@ -90,9 +90,9 @@ router.post('/upload', requireRole('admin', 'doctor', 'radiologist'), upload.sin
     res.status(201).json({ success: true, data: image });
 }));
 
-// GET /api/images/patient/:patientID — all roles
-router.get('/patient/:patientID', asyncHandler(async (req, res) => {
-    const images = await imageService.getImagesByPatient(req.params.patientID, req.staffID);
+// GET /api/images/patient/:patientId — all roles
+router.get('/patient/:patientId', asyncHandler(async (req, res) => {
+    const images = await imageService.getImagesByPatient(req.params.patientId, req.staffID);
     res.json({ success: true, data: images });
 }));
 

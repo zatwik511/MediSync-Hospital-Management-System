@@ -12,9 +12,9 @@ router.get('/doctors', asyncHandler(async (req, res) => {
     res.json({ success: true, data: doctors });
 }));
 
-// GET /api/patient/appointments/slots/:doctorID/:date  — available slots
-router.get('/slots/:doctorID/:date', asyncHandler(async (req, res) => {
-    const slots = await appointmentService.getBookedSlots(req.params.doctorID, req.params.date);
+// GET /api/patient/appointments/slots/:doctorId/:date  — available slots
+router.get('/slots/:doctorId/:date', asyncHandler(async (req, res) => {
+    const slots = await appointmentService.getBookedSlots(req.params.doctorId, req.params.date);
     res.json({ success: true, data: slots });
 }));
 
