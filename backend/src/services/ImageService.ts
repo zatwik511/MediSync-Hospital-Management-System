@@ -84,15 +84,21 @@ export class ImageService {
     );
     const imageUrl: string | undefined = fileResult.rows[0]?.image_url;
 
-    await pool.query(`DELETE FROM medical_images WHERE id = $1`, [imageID]);
-
     if (imageUrl) {
       const relativePath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
       const absolutePath = path.join(process.cwd(), relativePath);
-      fs.unlink(absolutePath, (err) => {
-        if (err) console.error(`Could not delete file ${absolutePath}:`, err.message);
-      });
+      try {
+        await fs.promises.unlink(absolutePath);
+      } catch (err: any) {
+        if (err.code !== 'ENOENT') {
+          console.error(`Could not delete file ${absolutePath}:`, err.message);
+          throw new Error('Failed to delete image file; database record was not removed');
+        }
+        // ENOENT: file already gone — safe to proceed
+      }
     }
+
+    await pool.query(`DELETE FROM medical_images WHERE id = $1`, [imageID]);
 
     await auditService.logAction({
       staffId,

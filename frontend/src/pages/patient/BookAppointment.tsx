@@ -45,7 +45,7 @@ export function BookAppointment() {
 
   if (loadingDoctors) return <PatientLayout><LoadingSpinner /></PatientLayout>;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
 
   return (
     <PatientLayout>

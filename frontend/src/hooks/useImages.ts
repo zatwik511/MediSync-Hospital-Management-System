@@ -12,7 +12,7 @@ export function usePatientImages(patientId: string) {
   return useQuery({
     queryKey: IMAGES_QUERY_KEY(patientId),
     queryFn: () => imageApi.getImagesByPatient(patientId),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 90,
     gcTime: 1000 * 60 * 10,
     enabled: !!patientId,
   });

@@ -2,7 +2,9 @@ import { useState, useMemo } from 'react';
 import { useAuditLogs } from '../hooks/useAudit';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { AuditLog } from '../api/auditApi';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 50;
 
 const ACTION_COLOURS: Record<string, string> = {
   LOGIN:  'bg-green-100 text-green-700',
@@ -25,20 +27,28 @@ function formatDate(iso: string) {
 }
 
 export function AuditLog() {
-  const [actionFilter, setActionFilter]     = useState('');
-  const [entityFilter, setEntityFilter]     = useState('');
-  const [staffSearch, setStaffSearch]       = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [entityFilter, setEntityFilter] = useState('');
+  const [staffSearch, setStaffSearch]   = useState('');
+  const [page, setPage]                 = useState(1);
 
-  const { data: logs = [], isLoading, refetch, isFetching } = useAuditLogs({
-    action:     actionFilter || undefined,
-    entityType: entityFilter || undefined,
-  });
+  const { data, isLoading, refetch, isFetching } = useAuditLogs(
+    { action: actionFilter || undefined, entityType: entityFilter || undefined },
+    page,
+    PAGE_SIZE,
+  );
+
+  const logs  = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const filtered = useMemo(() => {
     if (!staffSearch.trim()) return logs;
     const q = staffSearch.toLowerCase();
     return logs.filter((l: AuditLog) => l.staff_name.toLowerCase().includes(q));
   }, [logs, staffSearch]);
+
+  const resetPage = () => setPage(1);
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -48,7 +58,7 @@ export function AuditLog() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900">Audit Log</h1>
-            <p className="text-gray-500 mt-1">{filtered.length} events</p>
+            <p className="text-gray-500 mt-1">{total} events</p>
           </div>
           <button
             onClick={() => refetch()}
@@ -66,7 +76,7 @@ export function AuditLog() {
             <label className="block text-xs font-medium text-gray-500 mb-1">Action</label>
             <select
               value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
+              onChange={(e) => { setActionFilter(e.target.value); resetPage(); }}
               className="input-field text-sm py-1.5"
             >
               {ACTIONS.map(a => (
@@ -79,7 +89,7 @@ export function AuditLog() {
             <label className="block text-xs font-medium text-gray-500 mb-1">Entity type</label>
             <select
               value={entityFilter}
-              onChange={(e) => setEntityFilter(e.target.value)}
+              onChange={(e) => { setEntityFilter(e.target.value); resetPage(); }}
               className="input-field text-sm py-1.5"
             >
               {ENTITY_TYPES.map(t => (
@@ -149,6 +159,29 @@ export function AuditLog() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+              <span>
+                Page {page} of {totalPages} &mdash; {total} total events
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1 || isFetching}
+                  className="p-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages || isFetching}
+                  className="p-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -11,6 +11,8 @@ router.post('/', requireRole('admin', 'receptionist'), async (req: Request, res:
     if (!name || !address) {
       return res.status(400).json({ success: false, error: 'Name and address are required' });
     }
+    if (name.length > 255)    return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
+    if (address.length > 500) return res.status(400).json({ success: false, error: 'Address must be 500 characters or fewer' });
     const patient = await patientService.createPatient(
       { name, address, conditions: conditions || [] },
       req.staffID
@@ -37,8 +39,10 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, limit, search = '' } = req.query as Record<string, string>;
     if (page) {
-      const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
-      const limitNum = Math.min(100, parseInt(limit || '20', 10) || 20);
+      const pageNum  = parseInt(page, 10);
+      const limitNum = parseInt(limit || '20', 10);
+      if (!Number.isInteger(pageNum)  || pageNum  < 1)         return res.status(400).json({ success: false, error: 'page must be a positive integer' });
+      if (!Number.isInteger(limitNum) || limitNum < 1 || limitNum > 100) return res.status(400).json({ success: false, error: 'limit must be between 1 and 100' });
       const result = await patientService.listPatientsPaginated(pageNum, limitNum, search, req.staffID);
       return res.json({ success: true, data: result });
     }
@@ -62,10 +66,15 @@ router.delete('/:id', requireRole('admin'), async (req: Request, res: Response) 
 // PUT /api/patients/:id — admin, receptionist
 router.put('/:id', requireRole('admin', 'receptionist'), async (req: Request, res: Response) => {
   try {
+    const { name, address, diagnosis } = req.body;
+    if (name      !== undefined && name.length      > 255)  return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
+    if (address   !== undefined && address.length   > 500)  return res.status(400).json({ success: false, error: 'Address must be 500 characters or fewer' });
+    if (diagnosis !== undefined && diagnosis.length > 2000) return res.status(400).json({ success: false, error: 'Diagnosis must be 2000 characters or fewer' });
     const patient = await patientService.updatePatient(req.params.id, req.body, req.staffID);
     res.json({ success: true, data: patient });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    const status = error.code === 'CONFLICT' ? 409 : 500;
+    res.status(status).json({ success: false, error: error.message });
   }
 });
 
@@ -74,6 +83,7 @@ router.put('/:id/diagnosis', requireRole('admin', 'doctor'), async (req: Request
   try {
     const { diagnosis } = req.body;
     if (!diagnosis) return res.status(400).json({ success: false, error: 'Diagnosis is required' });
+    if (diagnosis.length > 2000) return res.status(400).json({ success: false, error: 'Diagnosis must be 2000 characters or fewer' });
     const patient = await patientService.updateDiagnosis(req.params.id, diagnosis, req.staffID);
     res.json({ success: true, data: patient });
   } catch (error: any) {

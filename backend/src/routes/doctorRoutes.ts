@@ -11,6 +11,7 @@ function transformRow(row: any) {
     name: row.name,
     specialty: row.specialty,
     availableDays: row.available_days,
+    staffId: row.staff_id || null,
     createdAt: row.created_at,
   };
 }
@@ -28,14 +29,16 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /api/doctors — admin only
 router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
   try {
-    const { name, specialty, availableDays } = req.body;
+    const { name, specialty, availableDays, staffId } = req.body;
     if (!name?.trim() || !specialty?.trim()) {
       return res.status(400).json({ success: false, error: 'Name and specialty are required' });
     }
+    if (name.length > 255)      return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
+    if (specialty.length > 255) return res.status(400).json({ success: false, error: 'Specialty must be 255 characters or fewer' });
     const days = Array.isArray(availableDays) ? availableDays : [];
     const result = await pool.query(
-      `INSERT INTO doctors (name, specialty, available_days) VALUES ($1, $2, $3) RETURNING *`,
-      [name.trim(), specialty.trim(), days]
+      `INSERT INTO doctors (name, specialty, available_days, staff_id) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [name.trim(), specialty.trim(), days, staffId || null]
     );
     const doctor = transformRow(result.rows[0]);
     await auditService.logAction({
@@ -54,14 +57,16 @@ router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
 // PUT /api/doctors/:id — admin only
 router.put('/:id', requireRole('admin'), async (req: Request, res: Response) => {
   try {
-    const { name, specialty, availableDays } = req.body;
+    const { name, specialty, availableDays, staffId } = req.body;
     if (!name?.trim() || !specialty?.trim()) {
       return res.status(400).json({ success: false, error: 'Name and specialty are required' });
     }
+    if (name.length > 255)      return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
+    if (specialty.length > 255) return res.status(400).json({ success: false, error: 'Specialty must be 255 characters or fewer' });
     const days = Array.isArray(availableDays) ? availableDays : [];
     const result = await pool.query(
-      `UPDATE doctors SET name = $1, specialty = $2, available_days = $3 WHERE id = $4 RETURNING *`,
-      [name.trim(), specialty.trim(), days, req.params.id]
+      `UPDATE doctors SET name = $1, specialty = $2, available_days = $3, staff_id = $4 WHERE id = $5 RETURNING *`,
+      [name.trim(), specialty.trim(), days, staffId || null, req.params.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Doctor not found' });

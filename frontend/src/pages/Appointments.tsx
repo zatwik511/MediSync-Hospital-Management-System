@@ -695,7 +695,7 @@ export function Appointments() {
                 <input
                   type="date"
                   value={bookDate}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toLocaleDateString('en-CA')}
                   onChange={e => { setBookDate(e.target.value); setBookTime(''); }}
                   className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${bookSubmitted && bookErrors.date ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-emerald-500'}`}
                 />
@@ -797,7 +797,7 @@ export function Appointments() {
                 <input
                   type="date"
                   value={rescheduleDate}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toLocaleDateString('en-CA')}
                   onChange={e => { setRescheduleDate(e.target.value); setRescheduleTime(''); }}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />

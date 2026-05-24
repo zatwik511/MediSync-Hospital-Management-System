@@ -11,11 +11,12 @@ router.post('/task', requireRole('admin'), async (req: Request, res: Response) =
     if (!patientID || !description || cost === undefined) {
       return res.status(400).json({ success: false, error: 'patientID, description, and cost are required' });
     }
-    if (isNaN(Number(cost)) || Number(cost) < 0) {
-      return res.status(400).json({ success: false, error: 'Cost must be a positive number' });
+    const costNum = Math.round(Number(cost) * 100) / 100;
+    if (isNaN(costNum) || costNum <= 0) {
+      return res.status(400).json({ success: false, error: 'Cost must be a positive number greater than zero' });
     }
     const task = await financialService.recordTask(
-      { patientID, description, cost: Number(cost) },
+      { patientID, description, cost: costNum },
       req.staffID
     );
     res.status(201).json({ success: true, data: task });

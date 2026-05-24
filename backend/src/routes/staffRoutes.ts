@@ -11,6 +11,9 @@ router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
     if (!name || !address || !role) {
       return res.status(400).json({ success: false, error: 'Name, address, and role are required' });
     }
+    if (name.length > 255)                               return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
+    if (address.length > 500)                            return res.status(400).json({ success: false, error: 'Address must be 500 characters or fewer' });
+    if (specialization && specialization.length > 255)   return res.status(400).json({ success: false, error: 'Specialization must be 255 characters or fewer' });
     const staff = await staffService.createStaff(
       { name, address, role, specialization: specialization || '' },
       req.staffID

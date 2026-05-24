@@ -10,93 +10,13 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 2. Data Integrity
 
-### 2.1 Race condition in appointment booking
-- **File:** `backend/src/services/AppointmentService.ts`
-- **Problem:** Slot conflict is checked with a `SELECT`, then the new appointment is `INSERT`ed in a separate statement. Two concurrent requests can both pass the check and both insert, creating a double-booking.
-- **Fix:** Add a `UNIQUE` constraint on `(doctor_id, date, time)` filtered to non-cancelled appointments, or wrap the check-and-insert in a serializable transaction.
-
-### 2.2 Doctor-staff name join is fragile
-- **File:** `backend/src/services/NotificationService.ts`
-- **Problem:** `LOWER(s.name) = LOWER(d.name)` links staff accounts to doctor profiles by name. Two people with the same name break this silently (wrong notifications) or miss it (no notifications).
-- **Fix:** Add a `staff_id` foreign key column to the `doctors` table and join on that instead.
-
-### 2.3 File deletion is fire-and-forget
-- **File:** `backend/src/services/ImageService.ts`
-- **Problem:** After deleting an image DB record, the file is deleted asynchronously without awaiting the result. If `fs.unlink` fails, the DB record is gone but the file remains, causing orphaned files.
-- **Fix:** Either await `fs.unlink` and log/handle failures, or (safer) delete the file first and only delete the DB record after confirming success.
-
-### 2.4 No past-date validation on appointments
-- **File:** `backend/src/services/AppointmentService.ts`, `frontend/src/pages/Appointments.tsx`
-- **Problem:** Appointments can be created or rescheduled to dates in the past. No validation exists on either the frontend form or the backend service.
-- **Fix:** Backend: reject if `new Date(date + 'T' + time) < new Date()`. Frontend: set `min={new Date().toLocaleDateString('en-CA')}` on date inputs.
-
-### 2.5 Unvalidated array contents stored as JSON
-- **File:** `backend/src/services/PatientService.ts`
-- **Problem:** `conditions` and `allergies` are accepted as arrays and stored via `JSON.stringify()` without validating individual elements. Malformed or excessively large values are persisted unchecked.
-- **Fix:** Validate that each element is a non-empty string under a reasonable length limit before serializing.
-
-### 2.6 Concurrent writes to patient records unchecked
-- **File:** `backend/src/services/PatientService.ts`
-- **Problem:** No optimistic locking or `updated_at` version check. Two staff members editing the same patient simultaneously will silently overwrite each other.
-- **Fix:** Add an `updated_at` column, pass it with update requests, and reject if the DB value has changed since the client last read.
-
 ---
 
 ## 3. Input Validation & Sanitization
 
-### 3.1 Email not validated on patient registration
-- **File:** `backend/src/routes/patientAuthRoutes.ts`
-- **Problem:** Email is only `.trim()`ed. Malformed values like `notanemail` or `@` are accepted and stored.
-- **Fix:** Validate format: `if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json(...)`.
-
-### 3.2 No length limits on free-text fields
-- **Files:** `backend/src/routes/patientRoutes.ts`, `backend/src/routes/doctorRoutes.ts`, `backend/src/routes/staffRoutes.ts`
-- **Problem:** Fields like `name`, `address`, `notes` accept unlimited length, enabling abnormally large inputs that waste storage and could cause issues with display components.
-- **Fix:** Add server-side length validation: names ≤ 255 chars, addresses ≤ 500 chars, notes ≤ 2000 chars.
-
-### 3.3 diseaseType field not sanitized
-- **File:** `backend/src/routes/imageRoutes.ts`
-- **Problem:** `diseaseType` is stored and later rendered in the UI without sanitization. If rendered with `dangerouslySetInnerHTML` anywhere (or in future), this is an XSS vector.
-- **Fix:** Sanitize all user-supplied strings before storing. Validate `diseaseType` against a known enum if possible.
-
-### 3.4 Pagination params not validated
-- **File:** `backend/src/routes/appointmentRoutes.ts`, `backend/src/routes/patientRoutes.ts`
-- **Problem:** `parseInt(page, 10) || 1` silently coerces invalid values. Negative pages or extremely large page numbers are not rejected.
-- **Fix:** Explicitly validate: `if (!Number.isInteger(pageNum) || pageNum < 1) return res.status(400)...`.
-
-### 3.5 Financial cost not validated against precision
-- **File:** `backend/src/routes/financialRoutes.ts`
-- **Problem:** Cost is accepted as a raw number. Floating-point inputs like `9.999999999999998` could create inconsistent stored values. Zero cost is accepted without business-logic check.
-- **Fix:** Round to 2 decimal places server-side. Reject zero or negative costs if the business rule disallows them.
-
 ---
 
 ## 4. Performance
-
-### 4.1 Unbounded audit log queries
-- **File:** `backend/src/services/AuditService.ts`
-- **Problem:** `getLogs()` uses a hard-coded `LIMIT 1000` with no pagination. `getLogsByStaff()` uses `LIMIT 500`. As the audit table grows, these queries return massive datasets in a single response.
-- **Fix:** Accept `page` and `limit` query parameters. Default `limit` to 50, cap at 200.
-
-### 4.2 Dual COUNT + SELECT for paginated lists
-- **File:** `backend/src/services/PatientService.ts`, `backend/src/services/AppointmentService.ts`
-- **Problem:** Paginated list endpoints execute two separate queries (one `COUNT(*)`, one `SELECT ... LIMIT/OFFSET`). On large tables this is expensive.
-- **Fix:** Use a window function: `SELECT COUNT(*) OVER() AS total_count, * FROM patients ...` to get both in one pass. Alternatively, cache counts for short TTLs.
-
-### 4.3 Notification polling interval
-- **File:** `frontend/src/hooks/useNotifications.ts` (or wherever polling is configured)
-- **Problem:** Notifications are polled via React Query. If the interval is short (e.g., 10–15s), this generates continuous backend traffic for all logged-in users.
-- **Fix:** Increase interval to 60s, or replace polling with a WebSocket / Server-Sent Events connection.
-
-### 4.4 Image stale time may be too long
-- **File:** `frontend/src/hooks/useImages.ts`
-- **Problem:** `staleTime: 1000 * 60 * 5` (5 minutes) means newly uploaded images may not appear for up to 5 minutes on a cached view.
-- **Fix:** Reduce to 60–120s, or invalidate the query explicitly on successful upload (React Query `queryClient.invalidateQueries`).
-
-### 4.5 No database indexes documented or enforced
-- **File:** All migration / schema files
-- **Problem:** Indexes on `appointments(doctor_id, date)`, `images(patient_id)`, `audit_logs(staff_id)`, `notifications(staff_id, is_read)` are not confirmed to exist. Missing indexes cause full-table scans.
-- **Fix:** Audit `\di` in psql and add indexes for all foreign keys and common filter columns.
 
 ---
 
@@ -267,24 +187,19 @@ This file captures all identified issues, technical debt, and improvement opport
 | Category | Item Count | Max Priority |
 |---|---|---|
 | Critical Security | 0 | — |
-| Data Integrity | 6 | High |
-| Input Validation | 5 | High |
-| Performance | 5 | Medium |
+| Data Integrity | 0 | — |
+| Input Validation | 0 | — |
+| Performance | 0 | — |
 | Code Quality | 10 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **45** | — |
+| **Total** | **29** | — |
 
 ---
 
 ## Recommended First Pass (Highest ROI)
 
-1. **#2.1** — Fix the appointment double-booking race condition (DB unique constraint)
-3. **#2.2** — Replace doctor-staff name join with a `staff_id` foreign key
-4. **#2.3** — Await file deletion and handle failure
-5. **#2.4** — Add past-date validation on appointment create/reschedule
-6. **#5.8** — Add a React error boundary
-8. **#4.1** — Add pagination to audit log queries
-9. **#6.5** — Soft-delete pattern for patients and doctors
-10. **#8.3** — Add a basic CI pipeline (type-check + lint)
+1. **#5.8** — Add a React error boundary
+2. **#6.5** — Soft-delete pattern for patients and doctors
+3. **#8.3** — Add a basic CI pipeline (type-check + lint)

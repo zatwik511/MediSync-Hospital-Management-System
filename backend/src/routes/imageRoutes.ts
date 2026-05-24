@@ -7,6 +7,14 @@ import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
+function sanitizeDiseaseType(value: unknown): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  const str = String(value).trim();
+  if (str.length > 255) return null; // too long
+  if (/[<>]/.test(str)) return null; // HTML injection characters
+  return str;
+}
+
 const ALLOWED_IMAGE_MIMETYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -66,15 +74,21 @@ router.post('/upload', requireRole('admin', 'doctor', 'radiologist'), upload.sin
       return res.status(400).json({ success: false, error: 'Invalid file type' });
     }
 
-    const { patientID, imageType, diseaseType } = req.body;
+    const { patientID, imageType, diseaseType: rawDiseaseType } = req.body;
     const uploadedBy = req.staffID || 'unknown';
 
     if (!patientID || !imageType) {
       return res.status(400).json({ success: false, error: 'patientID and imageType are required' });
     }
 
+    const diseaseType = sanitizeDiseaseType(rawDiseaseType);
+    if (rawDiseaseType && diseaseType === null) {
+      fs.unlink(req.file!.path, () => {});
+      return res.status(400).json({ success: false, error: 'Invalid diseaseType: must be 255 characters or fewer and contain no HTML' });
+    }
+
     const image = await imageService.uploadImage(
-      { patientID, imageType, diseaseType: diseaseType || 'unclassified', fileName: req.file.filename },
+      { patientID, imageType, diseaseType: diseaseType || 'unclassified', fileName: req.file!.filename },
       uploadedBy
     );
     res.status(201).json({ success: true, data: image });
@@ -96,8 +110,12 @@ router.get('/patient/:patientID', async (req: Request, res: Response) => {
 // PUT /api/images/:id/classify — admin, doctor, radiologist
 router.put('/:id/classify', requireRole('admin', 'doctor', 'radiologist'), async (req: Request, res: Response) => {
   try {
-    const { imageType, diseaseType } = req.body;
-    const image = await imageService.classifyImage(req.params.id, imageType, diseaseType, req.staffID);
+    const { imageType, diseaseType: rawDiseaseType } = req.body;
+    const diseaseType = sanitizeDiseaseType(rawDiseaseType);
+    if (rawDiseaseType && diseaseType === null) {
+      return res.status(400).json({ success: false, error: 'Invalid diseaseType: must be 255 characters or fewer and contain no HTML' });
+    }
+    const image = await imageService.classifyImage(req.params.id, imageType, diseaseType || '', req.staffID);
     if (!image) return res.status(404).json({ success: false, error: 'Image not found' });
     res.json({ success: true, data: image });
   } catch (error: any) {

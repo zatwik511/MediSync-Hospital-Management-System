@@ -29,6 +29,7 @@ export interface Patient extends User {
   emergencyContactName?: string;
   emergencyContactRelationship?: string;
   emergencyContactPhone?: string;
+  updatedAt?: string;
 }
 
 export interface Vital {
@@ -130,6 +131,7 @@ export interface UpdatePatientDTO {
   emergencyContactName?: string;
   emergencyContactRelationship?: string;
   emergencyContactPhone?: string;
+  updatedAt?: string; // optimistic lock version
 }
 
 export interface CreateVitalDTO {

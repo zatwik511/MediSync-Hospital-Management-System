@@ -9,8 +9,10 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { page, limit, search = '' } = req.query as Record<string, string>;
     if (page) {
-      const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
-      const limitNum = Math.min(100, parseInt(limit || '20', 10) || 20);
+      const pageNum  = parseInt(page, 10);
+      const limitNum = parseInt(limit || '20', 10);
+      if (!Number.isInteger(pageNum)  || pageNum  < 1)         return res.status(400).json({ success: false, error: 'page must be a positive integer' });
+      if (!Number.isInteger(limitNum) || limitNum < 1 || limitNum > 100) return res.status(400).json({ success: false, error: 'limit must be between 1 and 100' });
       const result = await appointmentService.listAppointmentsPaginated(pageNum, limitNum, search, req.staffID);
       return res.json({ success: true, data: result });
     }

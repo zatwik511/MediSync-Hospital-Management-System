@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDoctors, useCreateDoctor, useUpdateDoctor, useDeleteDoctor } from '../hooks/useDoctors';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Trash2, Pencil, X, Stethoscope } from 'lucide-react';
 import type { Doctor } from '../types/appointments';
+import type { Staff } from '../types';
+import { apiClient } from '../api/client';
+import type { APIResponse } from '../types';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -19,8 +23,18 @@ export function Doctors() {
   const updateDoctor = useUpdateDoctor();
   const deleteDoctor = useDeleteDoctor();
 
+  const { data: allStaff } = useQuery({
+    queryKey: ['staff'],
+    queryFn: async () => {
+      const res = await apiClient.get<APIResponse<Staff[]>>('/staff');
+      return res.data.data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+  const doctorStaff = (allStaff || []).filter(s => s.role === 'doctor');
+
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
-  const [form, setForm] = useState({ name: '', specialty: '', availableDays: [] as string[] });
+  const [form, setForm] = useState({ name: '', specialty: '', availableDays: [] as string[], staffId: '' });
   const [errors, setErrors] = useState({ name: '', specialty: '' });
   const [submitted, setSubmitted] = useState(false);
 
@@ -34,14 +48,14 @@ export function Doctors() {
 
   const startEdit = (doc: Doctor) => {
     setEditingDoctor(doc);
-    setForm({ name: doc.name, specialty: doc.specialty, availableDays: doc.availableDays });
+    setForm({ name: doc.name, specialty: doc.specialty, availableDays: doc.availableDays, staffId: doc.staffId || '' });
     setErrors({ name: '', specialty: '' });
     setSubmitted(false);
   };
 
   const cancelEdit = () => {
     setEditingDoctor(null);
-    setForm({ name: '', specialty: '', availableDays: [] });
+    setForm({ name: '', specialty: '', availableDays: [], staffId: '' });
     setErrors({ name: '', specialty: '' });
     setSubmitted(false);
   };
@@ -57,12 +71,13 @@ export function Doctors() {
     if (Object.values(errs).some(Boolean)) return;
 
     try {
+      const payload = { ...form, staffId: form.staffId || null };
       if (editingDoctor) {
-        await updateDoctor.mutateAsync({ id: editingDoctor.id, data: form });
+        await updateDoctor.mutateAsync({ id: editingDoctor.id, data: payload });
         cancelEdit();
       } else {
-        await createDoctor.mutateAsync(form);
-        setForm({ name: '', specialty: '', availableDays: [] });
+        await createDoctor.mutateAsync(payload);
+        setForm({ name: '', specialty: '', availableDays: [], staffId: '' });
         setSubmitted(false);
       }
     } catch (err) {
@@ -128,6 +143,21 @@ export function Doctors() {
                   {SPECIALTIES.map(s => <option key={s} value={s} />)}
                 </datalist>
                 {submitted && errors.specialty && <p className="text-red-500 text-xs mt-1">{errors.specialty}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Linked Staff Account <span className="text-gray-400 font-normal">(optional)</span></label>
+                <select
+                  value={form.staffId}
+                  onChange={e => setForm(f => ({ ...f, staffId: e.target.value }))}
+                  className="input-field"
+                >
+                  <option value="">— None —</option>
+                  {doctorStaff.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.staff_code})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">Links this doctor profile to a staff account for notifications.</p>
               </div>
 
               <div>

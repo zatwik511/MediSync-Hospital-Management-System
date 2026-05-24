@@ -14,6 +14,13 @@ export interface AuditLog {
   created_at: Date;
 }
 
+export interface PaginatedAuditResult {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 interface LogParams {
   staffId: string;
   staffName?: string;
@@ -51,7 +58,14 @@ class AuditService {
     }
   }
 
-  async getLogs(filters?: { entityType?: string; action?: string }): Promise<AuditLog[]> {
+  async getLogs(
+    filters?: { entityType?: string; action?: string },
+    page = 1,
+    limit = 50,
+  ): Promise<PaginatedAuditResult> {
+    const safeLimit = Math.min(limit, 200);
+    const offset = (page - 1) * safeLimit;
+
     const conditions: string[] = [];
     const values: unknown[] = [];
 
@@ -65,19 +79,39 @@ class AuditService {
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const limitParam  = values.length + 1;
+    const offsetParam = values.length + 2;
+    values.push(safeLimit, offset);
+
     const result = await pool.query(
-      `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT 1000`,
-      values
+      `SELECT *, COUNT(*) OVER() AS total_count
+       FROM audit_logs ${where}
+       ORDER BY created_at DESC
+       LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      values,
     );
-    return result.rows as AuditLog[];
+
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    const items = result.rows.map(({ total_count: _tc, ...row }: Record<string, unknown>) => row as unknown as AuditLog);
+    return { items, total, page, limit: safeLimit };
   }
 
-  async getLogsByStaff(staffId: string): Promise<AuditLog[]> {
+  async getLogsByStaff(staffId: string, page = 1, limit = 50): Promise<PaginatedAuditResult> {
+    const safeLimit = Math.min(limit, 200);
+    const offset = (page - 1) * safeLimit;
+
     const result = await pool.query(
-      `SELECT * FROM audit_logs WHERE staff_id = $1 ORDER BY created_at DESC LIMIT 500`,
-      [staffId]
+      `SELECT *, COUNT(*) OVER() AS total_count
+       FROM audit_logs
+       WHERE staff_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [staffId, safeLimit, offset],
     );
-    return result.rows as AuditLog[];
+
+    const total = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    const items = result.rows.map(({ total_count: _tc, ...row }: Record<string, unknown>) => row as unknown as AuditLog);
+    return { items, total, page, limit: safeLimit };
   }
 }
 

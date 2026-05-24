@@ -137,7 +137,7 @@ export function PatientDetails() {
     if (!editForm.address?.trim()) { setEditError('Address is required.'); return; }
     setEditError(''); setEditSaving(true);
     try {
-      await updatePatient.mutateAsync(editForm);
+      await updatePatient.mutateAsync({ ...editForm, updatedAt: patient?.updatedAt });
       setShowEditModal(false);
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Failed to save.');
@@ -167,14 +167,14 @@ export function PatientDetails() {
     if (!allergyForm.reaction.trim())  { setAllergyError('Reaction is required.');  return; }
     setAllergyError('');
     const current = patient?.allergies || [];
-    await updatePatient.mutateAsync({ allergies: [...current, { ...allergyForm, substance: allergyForm.substance.trim(), reaction: allergyForm.reaction.trim() }] });
+    await updatePatient.mutateAsync({ allergies: [...current, { ...allergyForm, substance: allergyForm.substance.trim(), reaction: allergyForm.reaction.trim() }], updatedAt: patient?.updatedAt });
     setAllergyForm(ALLERGY_EMPTY);
     setShowAllergyForm(false);
   };
 
   const handleRemoveAllergy = async (index: number) => {
     const current = patient?.allergies || [];
-    await updatePatient.mutateAsync({ allergies: current.filter((_, i) => i !== index) });
+    await updatePatient.mutateAsync({ allergies: current.filter((_, i) => i !== index), updatedAt: patient?.updatedAt });
   };
 
   // ── loading / error states ──

@@ -17,6 +17,7 @@ export interface Doctor {
   name: string;
   specialty: string;
   availableDays: string[];
+  staffId?: string | null;
   createdAt: string;
 }
 

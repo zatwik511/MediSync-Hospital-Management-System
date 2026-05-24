@@ -52,19 +52,21 @@ export class AppointmentService {
   }
 
   async createAppointment(data: CreateAppointmentDTO, staffId = ''): Promise<Appointment> {
-    const conflict = await pool.query(
-      `SELECT id FROM appointments
-       WHERE doctor_id = $1 AND date = $2 AND time = $3 AND status != 'Cancelled'`,
-      [data.doctorID, data.date, data.time]
-    );
-    if (conflict.rows.length > 0) throw new Error('This time slot is already booked');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (data.date < todayStr) throw new Error('Appointment date cannot be in the past');
 
-    const result = await pool.query(
-      `INSERT INTO appointments (patient_id, doctor_id, date, time, type, status, reason)
-       VALUES ($1, $2, $3, $4, $5, 'Confirmed', $6)
-       RETURNING *`,
-      [data.patientID, data.doctorID, data.date, data.time, data.type || 'In-Person', data.reason || null]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        `INSERT INTO appointments (patient_id, doctor_id, date, time, type, status, reason)
+         VALUES ($1, $2, $3, $4, $5, 'Confirmed', $6)
+         RETURNING *`,
+        [data.patientID, data.doctorID, data.date, data.time, data.type || 'In-Person', data.reason || null]
+      );
+    } catch (err: any) {
+      if (err.code === '23505') throw new Error('This time slot is already booked');
+      throw err;
+    }
     const appt = this.transformAppointment(result.rows[0]);
     await auditService.logAction({
       staffId,
@@ -116,25 +118,10 @@ export class AppointmentService {
     counts: { active: number; confirmed: number; cancelled: number };
   }> {
     const offset = (page - 1) * limit;
-    const [countResult, dataResult, countsResult] = await Promise.all([
+    const [dataResult, countsResult] = await Promise.all([
       pool.query(
-        `SELECT COUNT(*) FROM appointments a
-         LEFT JOIN doctors d ON a.doctor_id = d.id
-         LEFT JOIN patients pt ON a.patient_id = pt.id
-         WHERE ($1 = '' OR (
-           COALESCE(pt.name, '') ILIKE '%' || $1 || '%'
-           OR COALESCE(d.name, '') ILIKE '%' || $1 || '%'
-           OR COALESCE(d.specialty, '') ILIKE '%' || $1 || '%'
-           OR a.date::text ILIKE '%' || $1 || '%'
-           OR a.time ILIKE '%' || $1 || '%'
-           OR a.status ILIKE '%' || $1 || '%'
-           OR a.type ILIKE '%' || $1 || '%'
-           OR COALESCE(a.reason, '') ILIKE '%' || $1 || '%'
-         ))`,
-        [search]
-      ),
-      pool.query(
-        `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty
+        `SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty,
+                COUNT(*) OVER() AS total_count
          FROM appointments a
          LEFT JOIN doctors d ON a.doctor_id = d.id
          LEFT JOIN patients pt ON a.patient_id = pt.id
@@ -160,7 +147,7 @@ export class AppointmentService {
          FROM appointments`
       ),
     ]);
-    const total = parseInt(countResult.rows[0].count, 10);
+    const total = dataResult.rows.length > 0 ? parseInt(dataResult.rows[0].total_count, 10) : 0;
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const c = countsResult.rows[0];
     if (staffId) {
@@ -172,7 +159,7 @@ export class AppointmentService {
       });
     }
     return {
-      data: dataResult.rows.map(row => this.transformAppointment(row)),
+      data: dataResult.rows.map(({ total_count: _tc, ...row }) => this.transformAppointment(row)),
       total,
       page,
       totalPages,
@@ -230,17 +217,19 @@ export class AppointmentService {
     const existing = await this.getAppointment(appointmentID);
     if (!existing) throw new Error('Appointment not found');
 
-    const conflict = await pool.query(
-      `SELECT id FROM appointments
-       WHERE doctor_id = $1 AND date = $2 AND time = $3 AND status != 'Cancelled' AND id != $4`,
-      [existing.doctorID, date, time, appointmentID]
-    );
-    if (conflict.rows.length > 0) throw new Error('This time slot is already booked');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (date < todayStr) throw new Error('Appointment date cannot be in the past');
 
-    const result = await pool.query(
-      `UPDATE appointments SET date = $1, time = $2, status = 'Confirmed' WHERE id = $3 RETURNING *`,
-      [date, time, appointmentID]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        `UPDATE appointments SET date = $1, time = $2, status = 'Confirmed' WHERE id = $3 RETURNING *`,
+        [date, time, appointmentID]
+      );
+    } catch (err: any) {
+      if (err.code === '23505') throw new Error('This time slot is already booked');
+      throw err;
+    }
     const appt = this.transformAppointment(result.rows[0]);
     await auditService.logAction({
       staffId,

@@ -6,6 +6,7 @@ export interface CreateDoctorDTO {
   name: string;
   specialty: string;
   availableDays: string[];
+  staffId?: string | null;
 }
 
 export const doctorApi = {

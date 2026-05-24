@@ -13,6 +13,14 @@ router.post('/register', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Name, email, and PIN are required' });
   }
 
+  if (name.trim().length > 255) {
+    return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ success: false, error: 'Invalid email address' });
+  }
+
   try {
     const patient = await patientAuthService.register(name.trim(), email.trim(), pin);
     return res.status(201).json({ success: true, data: patient });

@@ -49,8 +49,8 @@ class NotificationService {
     try {
       const result = await pool.query(
         `SELECT s.id FROM staff s
-         JOIN doctors d ON LOWER(s.name) = LOWER(d.name)
-         WHERE d.id = $1 AND s.role = 'doctor'`,
+         JOIN doctors d ON s.id = d.staff_id
+         WHERE d.id = $1`,
         [doctorId]
       );
       for (const row of result.rows) {

@@ -55,14 +55,19 @@ export const patientApi = {
     patientId: string,
     data: UpdatePatientDTO
   ): Promise<Patient> {
-    const response = await apiClient.put<APIResponse<Patient>>(
-      `/patients/${patientId}`,
-      data
-    );
-    if (!response.data.success) {
-      throw new Error(response.data.error || 'Failed to update patient');
+    try {
+      const response = await apiClient.put<APIResponse<Patient>>(
+        `/patients/${patientId}`,
+        data
+      );
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Failed to update patient');
+      }
+      return response.data.data!;
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Failed to update patient';
+      throw new Error(msg);
     }
-    return response.data.data!;
   },
 
   // Update patient diagnosis
