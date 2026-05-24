@@ -9,7 +9,7 @@ import {
   useCancelAppointment,
 } from '../hooks/useAppointments';
 import { useAppointmentAnalytics, useAdvancedAppointmentAnalytics } from '../hooks/useReports';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SkeletonTableRow, SkeletonStatCard } from '../components/Skeleton';
 import { Pagination } from '../components/Pagination';
 import {
   Calendar, Clock, User, Plus, X, RefreshCw, Search, Download,
@@ -196,7 +196,34 @@ export function Appointments() {
     );
   };
 
-  if (isLoading && !result) return <LoadingSpinner />;
+  if (isLoading && !result) return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-9 w-52 animate-pulse bg-gray-200 rounded" />
+          <div className="h-4 w-72 animate-pulse bg-gray-200 rounded" />
+        </div>
+      </div>
+      <div className="h-10 w-64 animate-pulse bg-gray-200 rounded-lg" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => <SkeletonStatCard key={i} />)}
+      </div>
+      <div className="card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              {['Date', 'Patient', 'Doctor', 'Specialty', 'Time', 'Type', 'Status', ''].map(h => (
+                <th key={h} className="text-left py-3 px-4 font-semibold text-gray-700">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonTableRow key={i} cols={8} />)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">

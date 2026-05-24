@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePaginatedPatients, useDeletePatient, useCreatePatient } from '../hooks/usePatients';
-import { LoadingSpinner } from './LoadingSpinner';
+import { SkeletonTableRow } from './Skeleton';
 import { Pagination } from './Pagination';
 import { Trash2, Download, UserPlus, X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -78,7 +78,32 @@ export function PatientList() {
     }
   }
 
-  if (isLoading && !result) return <LoadingSpinner />;
+  if (isLoading && !result) return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <div className="h-7 w-28 animate-pulse bg-gray-200 rounded" />
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-44 animate-pulse bg-gray-200 rounded" />
+          <div className="h-9 w-28 animate-pulse bg-gray-200 rounded" />
+          <div className="h-9 w-28 animate-pulse bg-gray-200 rounded" />
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              {['Patient', 'Age', 'Gender', 'Conditions', 'Registered', 'Total Cost', ''].map(h => (
+                <th key={h} className="text-left py-3 px-4 font-semibold text-gray-700">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonTableRow key={i} cols={7} />)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   if (error) {
     return (

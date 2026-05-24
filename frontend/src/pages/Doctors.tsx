@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDoctors, useCreateDoctor, useUpdateDoctor, useDeleteDoctor } from '../hooks/useDoctors';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SkeletonPersonCard } from '../components/Skeleton';
 import { Trash2, Pencil, X, Stethoscope } from 'lucide-react';
 import type { Doctor } from '../types/appointments';
 import type { Staff } from '../types';
@@ -85,7 +85,35 @@ export function Doctors() {
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 animate-pulse bg-gray-200 rounded-xl" />
+          <div className="space-y-2">
+            <div className="h-8 w-32 animate-pulse bg-gray-200 rounded" />
+            <div className="h-4 w-64 animate-pulse bg-gray-200 rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="card p-6 space-y-4">
+            <div className="h-6 w-28 animate-pulse bg-gray-200 rounded mb-6" />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-3 w-16 animate-pulse bg-gray-200 rounded" />
+                <div className="h-9 animate-pulse bg-gray-200 rounded" />
+              </div>
+            ))}
+            <div className="h-9 animate-pulse bg-gray-200 rounded mt-2" />
+          </div>
+          <div className="lg:col-span-2 space-y-3">
+            <div className="h-6 w-40 animate-pulse bg-gray-200 rounded mb-6" />
+            {Array.from({ length: 5 }).map((_, i) => <SkeletonPersonCard key={i} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

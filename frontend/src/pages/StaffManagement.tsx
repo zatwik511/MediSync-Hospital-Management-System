@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStaff, useCreateStaff, useDeleteStaff, useResetPin } from '../hooks/useStaff';
 import { useAuth } from '../hooks/useAuth';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SkeletonPersonCard } from '../components/Skeleton';
 import { formatRelativeTime } from '../utils/time';
 import { Trash2, Key } from 'lucide-react';
 
@@ -91,7 +91,29 @@ export function StaffManagement() {
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="h-10 w-56 animate-pulse bg-gray-200 rounded mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="card p-6 space-y-4">
+            <div className="h-6 w-36 animate-pulse bg-gray-200 rounded mb-6" />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-3 w-16 animate-pulse bg-gray-200 rounded" />
+                <div className="h-9 animate-pulse bg-gray-200 rounded" />
+              </div>
+            ))}
+            <div className="h-9 animate-pulse bg-gray-200 rounded mt-2" />
+          </div>
+          <div className="lg:col-span-2 space-y-3">
+            <div className="h-6 w-40 animate-pulse bg-gray-200 rounded mb-6" />
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonPersonCard key={i} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

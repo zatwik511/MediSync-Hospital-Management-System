@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuditLogs } from '../hooks/useAudit';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SkeletonTableRow } from '../components/Skeleton';
 import type { AuditLog } from '../api/auditApi';
 import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -50,7 +50,40 @@ export function AuditLog() {
 
   const resetPage = () => setPage(1);
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="space-y-2">
+            <div className="h-10 w-36 animate-pulse bg-gray-200 rounded" />
+            <div className="h-4 w-20 animate-pulse bg-gray-200 rounded" />
+          </div>
+          <div className="h-9 w-24 animate-pulse bg-gray-200 rounded-lg" />
+        </div>
+        <div className="card p-4 mb-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="h-9 w-32 animate-pulse bg-gray-200 rounded" />
+            <div className="h-9 w-32 animate-pulse bg-gray-200 rounded" />
+            <div className="h-9 w-48 animate-pulse bg-gray-200 rounded" />
+          </div>
+        </div>
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                {['Time', 'Staff', 'Action', 'Entity', 'Details'].map(h => (
+                  <th key={h} className="text-left py-3 px-4 font-semibold text-gray-700">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 10 }).map((_, i) => <SkeletonTableRow key={i} cols={5} />)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

@@ -22,11 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.9 No loading skeletons — abrupt content shifts
-- **Files:** Most page components
-- **Problem:** While data loads, pages render nothing or a spinner. This causes layout shifts and feels unpolished.
-- **Fix:** Add skeleton placeholder components using Tailwind `animate-pulse` while queries are in `isLoading` state.
-
 ### 5.10 `toISOString().split('T')[0]` usage (potential leftover)
 - **Files:** Any remaining places not yet updated
 - **Problem:** `toISOString()` returns UTC time. In UTC+5:30, midnight local = 18:30 UTC previous day, so the date string is off by one.
@@ -146,11 +141,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 2 | Medium |
+| Code Quality | 1 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **21** | — |
+| **Total** | **20** | — |
 
 ---
 
