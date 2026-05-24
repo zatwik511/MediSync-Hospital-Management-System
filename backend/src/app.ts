@@ -21,6 +21,9 @@ import doctorRoutes from './routes/doctorRoutes';
 import prescriptionRoutes from './routes/prescriptionRoutes';
 import vitalRoutes from './routes/vitalRoutes';
 
+// Jobs
+import { startReminderJob } from './jobs/reminderJob';
+
 // Middleware
 import { authMiddleware } from './middleware/authMiddleware';
 import { patientAuthMiddleware } from './middleware/patientAuthMiddleware';
@@ -115,6 +118,7 @@ app.listen(PORT, () => {
   console.log(`🔑 Auth Service: http://localhost:${PORT}/api/auth/login`);
   console.log(`🖼️  Image uploads accessible at: http://localhost:${PORT}/uploads`);
   console.log(`📅 Appointments: http://localhost:${PORT}/api/appointments`);
+  startReminderJob();
 });
 
 export default app;

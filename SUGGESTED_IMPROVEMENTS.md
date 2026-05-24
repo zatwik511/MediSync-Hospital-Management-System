@@ -26,10 +26,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 6. Missing Features & UX Gaps
 
-### 6.2 No appointment reminders
-- **Problem:** Patients receive notifications in-app but no email or SMS reminder before an appointment.
-- **Fix:** Add a background job (cron) that runs daily, finds appointments 24h away, and sends email reminders via a mail service (Nodemailer + SMTP or a transactional provider).
-
 ### 6.3 Doctor availability / working hours not modelled
 - **Problem:** The booking system allows appointments at any time on any day. There is no concept of a doctor's working hours or non-working days.
 - **Fix:** Add a `doctor_availability` table with `(doctor_id, day_of_week, start_time, end_time)` and validate against it when booking.
@@ -132,10 +128,10 @@ This file captures all identified issues, technical debt, and improvement opport
 | Input Validation | 0 | — |
 | Performance | 0 | — |
 | Code Quality | 0 | — |
-| Missing Features / UX | 9 | Medium |
+| Missing Features / UX | 8 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **18** | — |
+| **Total** | **17** | — |
 
 ---
 
