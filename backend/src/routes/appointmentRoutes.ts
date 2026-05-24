@@ -1,6 +1,7 @@
 import express from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { appointmentService } from '../services/AppointmentService';
+import type { AvailabilitySlot } from '../services/AppointmentService';
 import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
@@ -32,10 +33,26 @@ router.get('/doctors', asyncHandler(async (req, res) => {
     res.json({ success: true, data: doctors });
 }));
 
-// GET /api/appointments/slots/:doctorId/:date — all roles
+// GET /api/appointments/slots/:doctorId/:date — all roles, returns available (bookable) slots
 router.get('/slots/:doctorId/:date', asyncHandler(async (req, res) => {
-    const bookedSlots = await appointmentService.getBookedSlots(req.params.doctorId, req.params.date);
-    res.json({ success: true, data: bookedSlots });
+    const result = await appointmentService.getAvailableSlots(req.params.doctorId, req.params.date);
+    res.json({ success: true, data: result });
+}));
+
+// GET /api/appointments/availability/:doctorId — all roles
+router.get('/availability/:doctorId', asyncHandler(async (req, res) => {
+    const slots = await appointmentService.getDoctorAvailability(req.params.doctorId);
+    res.json({ success: true, data: slots });
+}));
+
+// PUT /api/appointments/availability/:doctorId — admin only
+router.put('/availability/:doctorId', requireRole('admin'), asyncHandler(async (req, res) => {
+    const { slots } = req.body as { slots: AvailabilitySlot[] };
+    if (!Array.isArray(slots)) {
+      return res.status(400).json({ success: false, error: 'slots must be an array' });
+    }
+    await appointmentService.setDoctorAvailability(req.params.doctorId, slots);
+    res.json({ success: true });
 }));
 
 // GET /api/appointments/patient/:patientId — all roles

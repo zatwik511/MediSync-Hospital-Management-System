@@ -93,12 +93,14 @@ export function Appointments() {
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleError, setRescheduleError] = useState('');
 
-  // Fetch booked slots for selected doctor/date
-  const { data: bookedSlots = [] } = useBookedSlots(bookDoctorID, bookDate);
-  const { data: rescheduleBookedSlots = [] } = useBookedSlots(
+  // Fetch available slots for selected doctor/date
+  const { data: bookSlotsData } = useBookedSlots(bookDoctorID, bookDate);
+  const availableBookSlots = bookSlotsData?.slots ?? [];
+  const { data: rescheduleSlotsData } = useBookedSlots(
     appointments.find(a => a.id === rescheduleID)?.doctorID || '',
     rescheduleDate
   );
+  const availableRescheduleSlots = rescheduleSlotsData?.slots ?? [];
 
   const handleBook = async () => {
     setBookSubmitted(true);
@@ -735,29 +737,33 @@ export function Appointments() {
 
               {bookDoctorID && bookDate && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Select Time Slot *</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {ALL_SLOTS.map(slot => {
-                      const taken = bookedSlots.includes(slot);
-                      const selected = bookTime === slot;
-                      return (
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">
+                    Select Time Slot *
+                    {availableBookSlots.length > 0 && (
+                      <span className="ml-1 text-gray-400 font-normal normal-case">({availableBookSlots.length} available)</span>
+                    )}
+                  </label>
+                  {bookSlotsData?.hasAvailability && availableBookSlots.length === 0 ? (
+                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      Doctor is not working on this day.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableBookSlots.map(slot => (
                         <button
                           key={slot}
-                          disabled={taken}
                           onClick={() => setBookTime(slot)}
                           className={`py-2 px-1 text-xs rounded-md border transition-colors ${
-                            taken
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through border-gray-200'
-                              : selected
+                            bookTime === slot
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'border-gray-300 hover:border-emerald-400 hover:text-emerald-600'
                           }`}
                         >
                           {slot}
                         </button>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                   {bookSubmitted && bookErrors.time && <p className="text-red-500 text-xs mt-1">{bookErrors.time}</p>}
                 </div>
               )}
@@ -837,28 +843,27 @@ export function Appointments() {
               {rescheduleDate && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Select New Time Slot *</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {ALL_SLOTS.map(slot => {
-                      const taken = rescheduleBookedSlots.includes(slot);
-                      const selected = rescheduleTime === slot;
-                      return (
+                  {rescheduleSlotsData?.hasAvailability && availableRescheduleSlots.length === 0 ? (
+                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      Doctor is not working on this day.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableRescheduleSlots.map(slot => (
                         <button
                           key={slot}
-                          disabled={taken}
                           onClick={() => setRescheduleTime(slot)}
                           className={`py-2 px-1 text-xs rounded-md border transition-colors ${
-                            taken
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through border-gray-200'
-                              : selected
+                            rescheduleTime === slot
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'border-gray-300 hover:border-emerald-400 hover:text-emerald-600'
                           }`}
                         >
                           {slot}
                         </button>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

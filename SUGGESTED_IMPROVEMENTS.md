@@ -26,10 +26,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 6. Missing Features & UX Gaps
 
-### 6.3 Doctor availability / working hours not modelled
-- **Problem:** The booking system allows appointments at any time on any day. There is no concept of a doctor's working hours or non-working days.
-- **Fix:** Add a `doctor_availability` table with `(doctor_id, day_of_week, start_time, end_time)` and validate against it when booking.
-
 ### 6.4 Appointment status transitions not guarded
 - **File:** `backend/src/services/AppointmentService.ts`
 - **Problem:** An appointment can be moved from `cancelled` back to `scheduled`, or `completed` to `cancelled`, without any guard on allowed state transitions.
@@ -128,10 +124,10 @@ This file captures all identified issues, technical debt, and improvement opport
 | Input Validation | 0 | — |
 | Performance | 0 | — |
 | Code Quality | 0 | — |
-| Missing Features / UX | 8 | Medium |
+| Missing Features / UX | 7 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **17** | — |
+| **Total** | **16** | — |
 
 ---
 

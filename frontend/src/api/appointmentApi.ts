@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import type { APIResponse } from '../types';
-import type { Appointment, AppointmentPage, Doctor, CreateAppointmentDTO } from '../types/appointments';
+import type { Appointment, AppointmentPage, Doctor, CreateAppointmentDTO, AvailabilitySlot, AvailableSlotsResult } from '../types/appointments';
 
 export const appointmentApi = {
 
@@ -43,15 +43,37 @@ export const appointmentApi = {
     return response.data.data || [];
   },
 
-  // Get booked slots for a doctor on a date
-  async getBookedSlots(doctorId: string, date: string): Promise<string[]> {
-    const response = await apiClient.get<APIResponse<string[]>>(
+  // Get available (bookable) slots for a doctor on a date
+  async getAvailableSlots(doctorId: string, date: string): Promise<AvailableSlotsResult> {
+    const response = await apiClient.get<APIResponse<AvailableSlotsResult>>(
       `/appointments/slots/${doctorId}/${date}`
     );
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to fetch slots');
     }
-    return response.data.data || [];
+    return response.data.data ?? { slots: [], hasAvailability: false };
+  },
+
+  // Get doctor working-hours availability
+  async getDoctorAvailability(doctorId: string): Promise<AvailabilitySlot[]> {
+    const response = await apiClient.get<APIResponse<AvailabilitySlot[]>>(
+      `/appointments/availability/${doctorId}`
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch availability');
+    }
+    return response.data.data ?? [];
+  },
+
+  // Set doctor working-hours availability (admin only)
+  async setDoctorAvailability(doctorId: string, slots: AvailabilitySlot[]): Promise<void> {
+    const response = await apiClient.put<APIResponse<null>>(
+      `/appointments/availability/${doctorId}`,
+      { slots }
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to save availability');
+    }
   },
 
   // Book a new appointment

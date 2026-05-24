@@ -12,10 +12,10 @@ router.get('/doctors', asyncHandler(async (req, res) => {
     res.json({ success: true, data: doctors });
 }));
 
-// GET /api/patient/appointments/slots/:doctorId/:date  — available slots
+// GET /api/patient/appointments/slots/:doctorId/:date — returns available (bookable) slots
 router.get('/slots/:doctorId/:date', asyncHandler(async (req, res) => {
-    const slots = await appointmentService.getBookedSlots(req.params.doctorId, req.params.date);
-    res.json({ success: true, data: slots });
+    const result = await appointmentService.getAvailableSlots(req.params.doctorId, req.params.date);
+    res.json({ success: true, data: result });
 }));
 
 // GET /api/patient/appointments  — own appointments only (patientID from middleware)

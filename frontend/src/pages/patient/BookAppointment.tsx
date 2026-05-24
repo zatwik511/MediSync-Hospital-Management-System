@@ -5,14 +5,9 @@ import { PatientLayout } from '../../components/PatientLayout';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import {
   usePatientDoctors,
-  usePatientBookedSlots,
+  usePatientAvailableSlots,
   usePatientCreateAppointment,
 } from '../../hooks/usePatientPortal';
-
-const ALL_SLOTS = [
-  '08:30', '09:00', '09:30', '10:00', '10:30', '11:00',
-  '11:30', '14:00', '14:30', '15:00', '15:30', '16:00',
-];
 
 export function BookAppointment() {
   const navigate = useNavigate();
@@ -26,7 +21,9 @@ export function BookAppointment() {
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
 
-  const { data: bookedSlots = [] } = usePatientBookedSlots(doctorID, date);
+  const { data: slotsData } = usePatientAvailableSlots(doctorID, date);
+  const availableSlots = slotsData?.slots ?? [];
+  const hasAvailability = slotsData?.hasAvailability ?? false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,35 +88,38 @@ export function BookAppointment() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Time Slot *
-                  {bookedSlots.length > 0 && (
+                  {slotsData && availableSlots.length > 0 && (
                     <span className="ml-2 text-xs text-gray-400 font-normal">
-                      ({ALL_SLOTS.length - bookedSlots.length} available)
+                      ({availableSlots.length} available)
                     </span>
                   )}
                 </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {ALL_SLOTS.map(slot => {
-                    const taken = bookedSlots.includes(slot);
-                    const selected = time === slot;
-                    return (
+
+                {slotsData && hasAvailability && availableSlots.length === 0 ? (
+                  <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Doctor is not working on this day. Please choose a different date.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {availableSlots.map(slot => (
                       <button
                         key={slot}
                         type="button"
-                        disabled={taken}
                         onClick={() => setTime(slot)}
                         className={`py-2 text-xs rounded-lg border transition-colors ${
-                          taken
-                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed line-through border-gray-200'
-                            : selected
+                          time === slot
                             ? 'bg-emerald-600 text-white border-emerald-600 font-medium'
                             : 'border-gray-300 text-gray-700 hover:border-emerald-400 hover:text-emerald-600'
                         }`}
                       >
                         {slot}
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                    {slotsData && availableSlots.length === 0 && !hasAvailability && (
+                      <p className="col-span-4 text-sm text-gray-400">No slots available on this date.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

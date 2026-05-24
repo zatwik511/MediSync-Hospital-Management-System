@@ -27,14 +27,14 @@ export function usePatientDoctors() {
   });
 }
 
-export function usePatientBookedSlots(doctorId: string, date: string) {
+export function usePatientAvailableSlots(doctorId: string, date: string) {
   return useQuery({
     queryKey: ['patient-slots', doctorId, date],
-    queryFn: async (): Promise<string[]> => {
-      const res = await patientClient.get<APIResponse<string[]>>(
+    queryFn: async (): Promise<{ slots: string[]; hasAvailability: boolean }> => {
+      const res = await patientClient.get<APIResponse<{ slots: string[]; hasAvailability: boolean }>>(
         `/patient/appointments/slots/${doctorId}/${date}`
       );
-      return res.data.data ?? [];
+      return res.data.data ?? { slots: [], hasAvailability: false };
     },
     staleTime: 1000 * 60,
     enabled: !!doctorId && !!date,

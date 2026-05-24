@@ -37,3 +37,14 @@ export interface AppointmentPage {
   totalPages: number;
   counts: { active: number; confirmed: number; cancelled: number };
 }
+
+export interface AvailabilitySlot {
+  dayOfWeek: number;  // 0 = Sunday … 6 = Saturday
+  startTime: string;  // 'HH:MM'
+  endTime: string;    // 'HH:MM'
+}
+
+export interface AvailableSlotsResult {
+  slots: string[];
+  hasAvailability: boolean;
+}

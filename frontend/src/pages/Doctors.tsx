@@ -1,14 +1,114 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useDoctors, useCreateDoctor, useUpdateDoctor, useDeleteDoctor } from '../hooks/useDoctors';
+import { useDoctors, useCreateDoctor, useUpdateDoctor, useDeleteDoctor, useDoctorAvailability, useSetDoctorAvailability } from '../hooks/useDoctors';
 import { SkeletonPersonCard } from '../components/Skeleton';
-import { Trash2, Pencil, X, Stethoscope } from 'lucide-react';
-import type { Doctor } from '../types/appointments';
+import { Trash2, Pencil, X, Stethoscope, Clock } from 'lucide-react';
+import type { Doctor, AvailabilitySlot } from '../types/appointments';
 import type { Staff } from '../types';
 import { apiClient } from '../api/client';
 import type { APIResponse } from '../types';
 
+// day_of_week 0=Sun … 6=Sat; displayed Mon–Sun
+const WEEK_DAYS: { label: string; value: number }[] = [
+  { label: 'Mon', value: 1 }, { label: 'Tue', value: 2 }, { label: 'Wed', value: 3 },
+  { label: 'Thu', value: 4 }, { label: 'Fri', value: 5 }, { label: 'Sat', value: 6 },
+  { label: 'Sun', value: 0 },
+];
+
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+// ── Availability editor ────────────────────────────────────────────────────────
+
+type DayConfig = { startTime: string; endTime: string };
+
+function AvailabilityEditor({ doctorId, onClose }: { doctorId: string; onClose: () => void }) {
+  const { data: current = [], isLoading } = useDoctorAvailability(doctorId);
+  const save = useSetDoctorAvailability();
+
+  const toMap = (slots: AvailabilitySlot[]) => {
+    const m: Record<number, DayConfig> = {};
+    for (const s of slots) m[s.dayOfWeek] = { startTime: s.startTime, endTime: s.endTime };
+    return m;
+  };
+
+  const [config, setConfig] = useState<Record<number, DayConfig | null>>(() => {
+    const m: Record<number, DayConfig | null> = {};
+    for (const d of WEEK_DAYS) m[d.value] = null;
+    return m;
+  });
+  const [initialised, setInitialised] = useState(false);
+
+  if (!isLoading && !initialised) {
+    const loaded = toMap(current);
+    const next: Record<number, DayConfig | null> = {};
+    for (const d of WEEK_DAYS) next[d.value] = loaded[d.value] ?? null;
+    setConfig(next);
+    setInitialised(true);
+  }
+
+  const toggle = (val: number) =>
+    setConfig(c => ({ ...c, [val]: c[val] ? null : { startTime: '09:00', endTime: '17:00' } }));
+
+  const update = (val: number, field: keyof DayConfig, v: string) =>
+    setConfig(c => ({ ...c, [val]: { ...(c[val] as DayConfig), [field]: v } }));
+
+  const handleSave = async () => {
+    const slots: AvailabilitySlot[] = WEEK_DAYS
+      .filter(d => config[d.value] !== null)
+      .map(d => ({ dayOfWeek: d.value, ...(config[d.value] as DayConfig) }));
+    await save.mutateAsync({ doctorId, slots });
+    onClose();
+  };
+
+  if (isLoading) return <p className="text-xs text-gray-400 py-2 animate-pulse">Loading availability…</p>;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Working Hours</p>
+      <div className="space-y-1.5">
+        {WEEK_DAYS.map(d => {
+          const active = config[d.value] !== null;
+          return (
+            <div key={d.value} className="flex items-center gap-2">
+              <label className={`flex items-center gap-1.5 w-10 cursor-pointer select-none text-xs font-medium ${active ? 'text-emerald-700' : 'text-gray-400'}`}>
+                <input type="checkbox" checked={active} onChange={() => toggle(d.value)} className="sr-only" />
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${active ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}>
+                  {active && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                </span>
+                {d.label}
+              </label>
+              {active ? (
+                <>
+                  <input type="time" value={(config[d.value] as DayConfig).startTime}
+                    onChange={e => update(d.value, 'startTime', e.target.value)}
+                    className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  <span className="text-xs text-gray-400">to</span>
+                  <input type="time" value={(config[d.value] as DayConfig).endTime}
+                    onChange={e => update(d.value, 'endTime', e.target.value)}
+                    className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                </>
+              ) : (
+                <span className="text-xs text-gray-300">Not working</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-2 mt-3">
+        <button
+          onClick={handleSave}
+          disabled={save.isPending}
+          className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-medium"
+        >
+          {save.isPending ? 'Saving…' : 'Save Hours'}
+        </button>
+        <button onClick={onClose} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const SPECIALTIES = [
   'General Practice', 'Cardiology', 'Neurology', 'Orthopaedics', 'Radiology',
@@ -33,7 +133,8 @@ export function Doctors() {
   });
   const doctorStaff = (allStaff || []).filter(s => s.role === 'doctor');
 
-  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [editingDoctor, setEditingDoctor]     = useState<Doctor | null>(null);
+  const [availabilityOpen, setAvailabilityOpen] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', specialty: '', availableDays: [] as string[], staffId: '' });
   const [errors, setErrors] = useState({ name: '', specialty: '' });
   const [submitted, setSubmitted] = useState(false);
@@ -266,6 +367,13 @@ export function Doctors() {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => setAvailabilityOpen(availabilityOpen === doctor.id ? null : doctor.id)}
+                          className={`p-1.5 rounded transition-colors ${availabilityOpen === doctor.id ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                          title="Set working hours"
+                        >
+                          <Clock size={15} />
+                        </button>
                         <button onClick={() => startEdit(doctor)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="Edit">
                           <Pencil size={15} />
                         </button>
@@ -274,6 +382,13 @@ export function Doctors() {
                         </button>
                       </div>
                     </div>
+
+                    {availabilityOpen === doctor.id && (
+                      <AvailabilityEditor
+                        doctorId={doctor.id}
+                        onClose={() => setAvailabilityOpen(null)}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

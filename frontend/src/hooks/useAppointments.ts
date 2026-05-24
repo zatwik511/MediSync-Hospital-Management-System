@@ -35,7 +35,7 @@ export function useDoctors() {
 export function useBookedSlots(doctorId: string, date: string) {
   return useQuery({
     queryKey: ['slots', doctorId, date],
-    queryFn: () => appointmentApi.getBookedSlots(doctorId, date),
+    queryFn: () => appointmentApi.getAvailableSlots(doctorId, date),
     staleTime: 1000 * 60 * 1,
     gcTime: 1000 * 60 * 5,
     enabled: !!doctorId && !!date,

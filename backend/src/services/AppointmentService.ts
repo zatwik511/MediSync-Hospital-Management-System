@@ -47,6 +47,42 @@ interface AppointmentRow {
   created_at: string;
 }
 
+export interface AvailabilitySlot {
+  dayOfWeek: number;  // 0 = Sunday … 6 = Saturday
+  startTime: string;  // 'HH:MM'
+  endTime: string;    // 'HH:MM'
+}
+
+export interface AvailableSlotsResult {
+  slots: string[];
+  hasAvailability: boolean;
+}
+
+const DEFAULT_SLOTS = [
+  '08:30', '09:00', '09:30', '10:00', '10:30', '11:00',
+  '11:30', '14:00', '14:30', '15:00', '15:30', '16:00',
+];
+
+function parseLocalDayOfWeek(date: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay();
+}
+
+function generateSlots(startTime: string, endTime: string): string[] {
+  const slots: string[] = [];
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let cur = sh * 60 + sm;
+  const end = eh * 60 + em;
+  while (cur < end) {
+    slots.push(
+      `${Math.floor(cur / 60).toString().padStart(2, '0')}:${(cur % 60).toString().padStart(2, '0')}`
+    );
+    cur += 30;
+  }
+  return slots;
+}
+
 export class AppointmentService {
 
   private transformAppointment(row: AppointmentRow): Appointment {
@@ -68,6 +104,21 @@ export class AppointmentService {
   async createAppointment(data: CreateAppointmentDTO, staffId = ''): Promise<Appointment> {
     const todayStr = new Date().toLocaleDateString('en-CA');
     if (data.date < todayStr) throw new Error('Appointment date cannot be in the past');
+
+    // Validate against doctor availability if configured
+    const availability = await this.getDoctorAvailability(data.doctorID);
+    if (availability.length > 0) {
+      const dayOfWeek = parseLocalDayOfWeek(data.date);
+      const daySlot = availability.find(a => a.dayOfWeek === dayOfWeek);
+      if (!daySlot) throw new Error('Doctor is not available on this day');
+      const [reqH, reqM] = data.time.split(':').map(Number);
+      const reqMin = reqH * 60 + reqM;
+      const [sh, sm] = daySlot.startTime.split(':').map(Number);
+      const [eh, em] = daySlot.endTime.split(':').map(Number);
+      if (reqMin < sh * 60 + sm || reqMin >= eh * 60 + em) {
+        throw new Error(`Doctor is not available at this time (working hours: ${daySlot.startTime}–${daySlot.endTime})`);
+      }
+    }
 
     let result;
     try {
@@ -300,6 +351,56 @@ export class AppointmentService {
   async getTotalAppointmentCount(): Promise<number> {
     const result = await pool.query(`SELECT COUNT(*) FROM appointments WHERE status != 'Cancelled'`);
     return parseInt(result.rows[0].count, 10);
+  }
+
+  async getDoctorAvailability(doctorId: string): Promise<AvailabilitySlot[]> {
+    const result = await pool.query(
+      `SELECT day_of_week, start_time, end_time FROM doctor_availability WHERE doctor_id = $1 ORDER BY day_of_week`,
+      [doctorId]
+    );
+    return result.rows.map(row => ({
+      dayOfWeek: row.day_of_week as number,
+      startTime: row.start_time as string,
+      endTime:   row.end_time   as string,
+    }));
+  }
+
+  async setDoctorAvailability(doctorId: string, slots: AvailabilitySlot[]): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`DELETE FROM doctor_availability WHERE doctor_id = $1`, [doctorId]);
+      for (const slot of slots) {
+        await client.query(
+          `INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time) VALUES ($1, $2, $3, $4)`,
+          [doctorId, slot.dayOfWeek, slot.startTime, slot.endTime]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getAvailableSlots(doctorId: string, date: string): Promise<AvailableSlotsResult> {
+    const availability = await this.getDoctorAvailability(doctorId);
+    const booked = await this.getBookedSlots(doctorId, date);
+
+    if (availability.length === 0) {
+      return { slots: DEFAULT_SLOTS.filter(s => !booked.includes(s)), hasAvailability: false };
+    }
+
+    const dayOfWeek = parseLocalDayOfWeek(date);
+    const todaySlot = availability.find(a => a.dayOfWeek === dayOfWeek);
+    if (!todaySlot) {
+      return { slots: [], hasAvailability: true };
+    }
+
+    const generated = generateSlots(todaySlot.startTime, todaySlot.endTime);
+    return { slots: generated.filter(s => !booked.includes(s)), hasAvailability: true };
   }
 }
 
