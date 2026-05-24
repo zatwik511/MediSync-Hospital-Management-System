@@ -22,11 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.8 No React error boundary
-- **File:** `frontend/src/App.tsx`, `frontend/src/main.tsx`
-- **Problem:** A runtime error in any component bubbles to a blank white screen with no user feedback.
-- **Fix:** Wrap the app with a class-based `ErrorBoundary` component that renders a friendly "Something went wrong" message with a reload button.
-
 ### 5.9 No loading skeletons — abrupt content shifts
 - **Files:** Most page components
 - **Problem:** While data loads, pages render nothing or a spinner. This causes layout shifts and feels unpolished.
@@ -151,11 +146,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 3 | Medium |
+| Code Quality | 2 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **22** | — |
+| **Total** | **21** | — |
 
 ---
 
