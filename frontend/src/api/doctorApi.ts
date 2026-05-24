@@ -32,4 +32,16 @@ export const doctorApi = {
     const response = await apiClient.delete<APIResponse<null>>(`/doctors/${id}`);
     if (!response.data.success) throw new Error(response.data.error || 'Failed to delete doctor');
   },
+
+  async listDeletedDoctors(): Promise<Doctor[]> {
+    const response = await apiClient.get<APIResponse<Doctor[]>>('/doctors/deleted');
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to fetch deleted doctors');
+    return response.data.data || [];
+  },
+
+  async restoreDoctor(id: string): Promise<Doctor> {
+    const response = await apiClient.post<APIResponse<Doctor>>(`/doctors/${id}/restore`, {});
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to restore doctor');
+    return response.data.data!;
+  },
 };

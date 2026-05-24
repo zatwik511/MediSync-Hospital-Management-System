@@ -82,7 +82,7 @@ export const patientApi = {
     return response.data.data!;
   },
 
-  // Delete patient
+  // Delete patient (soft delete)
   async deletePatient(patientId: string): Promise<void> {
     const response = await apiClient.delete<APIResponse<null>>(
       `/patients/${patientId}`
@@ -90,6 +90,20 @@ export const patientApi = {
     if (!response.data.success) {
       throw new Error(response.data.error || 'Failed to delete patient');
     }
+  },
+
+  // List soft-deleted patients (admin only)
+  async listDeletedPatients(): Promise<Patient[]> {
+    const response = await apiClient.get<APIResponse<Patient[]>>('/patients/deleted');
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to fetch deleted patients');
+    return response.data.data || [];
+  },
+
+  // Restore a soft-deleted patient (admin only)
+  async restorePatient(patientId: string): Promise<Patient> {
+    const response = await apiClient.post<APIResponse<Patient>>(`/patients/${patientId}/restore`, {});
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to restore patient');
+    return response.data.data!;
   },
 
   // Get total cost for patient

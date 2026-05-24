@@ -128,7 +128,7 @@ export class PatientService {
   }
 
   async getPatient(patientID: string, staffId = ''): Promise<Patient | null> {
-    const result = await pool.query(`SELECT * FROM patients WHERE id = $1`, [patientID]);
+    const result = await pool.query(`SELECT * FROM patients WHERE id = $1 AND deleted_at IS NULL`, [patientID]);
     const patient = result.rows[0] || null;
     if (patient && staffId) {
       await auditService.logAction({
@@ -143,7 +143,7 @@ export class PatientService {
   }
 
   async listPatients(staffId = ''): Promise<Patient[]> {
-    const result = await pool.query(`SELECT * FROM patients ORDER BY "createdAt" DESC`);
+    const result = await pool.query(`SELECT * FROM patients WHERE deleted_at IS NULL ORDER BY "createdAt" DESC`);
     if (staffId) {
       await auditService.logAction({
         staffId,
@@ -165,7 +165,8 @@ export class PatientService {
     const result = await pool.query(
       `SELECT *, COUNT(*) OVER() AS total_count
        FROM patients
-       WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR address ILIKE '%' || $1 || '%')
+       WHERE deleted_at IS NULL
+         AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR address ILIKE '%' || $1 || '%')
        ORDER BY "createdAt" DESC
        LIMIT $2 OFFSET $3`,
       [search, limit, offset]
@@ -185,33 +186,46 @@ export class PatientService {
   }
 
   async deletePatient(patientID: string, staffId = ''): Promise<void> {
-    const patient = await pool.query(`SELECT name FROM patients WHERE id = $1`, [patientID]);
-    const name = patient.rows[0]?.name || patientID;
+    const patientRow = await pool.query(
+      `SELECT name FROM patients WHERE id = $1 AND deleted_at IS NULL`, [patientID]
+    );
+    if (!patientRow.rows[0]) throw new Error('Patient not found');
+    const name = patientRow.rows[0].name;
 
-    const [imgRes, taskRes, apptRes] = await Promise.all([
-      pool.query(`SELECT COUNT(*) FROM medical_images WHERE patient_id = $1`, [patientID]),
-      pool.query(`SELECT COUNT(*) FROM tasks          WHERE patient_id = $1`, [patientID]),
-      pool.query(`SELECT COUNT(*) FROM appointments   WHERE patient_id = $1`, [patientID]),
-    ]);
-    const images = parseInt(imgRes.rows[0].count, 10);
-    const tasks  = parseInt(taskRes.rows[0].count, 10);
-    const appts  = parseInt(apptRes.rows[0].count, 10);
-
-    if (images + tasks + appts > 0) {
-      console.warn(
-        `[PatientService] Deleting patient "${name}" (${patientID}) will cascade-delete: ` +
-        `${images} image(s), ${tasks} task(s), ${appts} appointment(s).`
-      );
-    }
-
-    await pool.query(`DELETE FROM patients WHERE id = $1`, [patientID]);
+    await pool.query(
+      `UPDATE patients SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, [patientID]
+    );
     await auditService.logAction({
       staffId,
       action: 'DELETE',
       entityType: 'patient',
       entityId: patientID,
-      description: `Deleted patient record for ${name} (cascaded: ${images} images, ${tasks} tasks, ${appts} appointments)`,
+      description: `Soft-deleted patient record for ${name}`,
     });
+  }
+
+  async restorePatient(patientID: string, staffId = ''): Promise<Patient> {
+    const result = await pool.query(
+      `UPDATE patients SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL RETURNING *`,
+      [patientID]
+    );
+    if (!result.rows[0]) throw new Error('Patient not found or is not deleted');
+    const patient = result.rows[0] as Patient;
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'patient',
+      entityId: patientID,
+      description: `Restored patient record for ${patient.name}`,
+    });
+    return patient;
+  }
+
+  async listDeletedPatients(): Promise<Patient[]> {
+    const result = await pool.query(
+      `SELECT * FROM patients WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`
+    );
+    return result.rows as Patient[];
   }
 
   async updateDiagnosis(patientID: string, diagnosis: string, staffId = ''): Promise<Patient> {
@@ -241,7 +255,7 @@ export class PatientService {
   }
 
   async getTotalPatientCount(): Promise<number> {
-    const result = await pool.query(`SELECT COUNT(*) FROM patients`);
+    const result = await pool.query(`SELECT COUNT(*) FROM patients WHERE deleted_at IS NULL`);
     return parseInt(result.rows[0].count, 10);
   }
 }

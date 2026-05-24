@@ -26,9 +26,17 @@ function transformRow(row: DoctorRow) {
   };
 }
 
-// GET /api/doctors — all roles
+// GET /api/doctors/deleted — admin only, list soft-deleted doctors
+router.get('/deleted', requireRole('admin'), asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      `SELECT * FROM doctors WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`
+    );
+    res.json({ success: true, data: result.rows.map(transformRow) });
+}));
+
+// GET /api/doctors — all roles, excludes soft-deleted
 router.get('/', asyncHandler(async (req, res) => {
-    const result = await pool.query(`SELECT * FROM doctors ORDER BY name ASC`);
+    const result = await pool.query(`SELECT * FROM doctors WHERE deleted_at IS NULL ORDER BY name ASC`);
     res.json({ success: true, data: result.rows.map(transformRow) });
 }));
 
@@ -83,10 +91,10 @@ router.put('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     res.json({ success: true, data: doctor });
 }));
 
-// DELETE /api/doctors/:id — admin only
+// DELETE /api/doctors/:id — admin only (soft delete)
 router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     const result = await pool.query(
-      `DELETE FROM doctors WHERE id = $1 RETURNING name`,
+      `UPDATE doctors SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING name`,
       [req.params.id]
     );
     if (result.rows.length === 0) {
@@ -97,9 +105,29 @@ router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
       action: 'DELETE',
       entityType: 'doctor',
       entityId: req.params.id,
-      description: `Deleted doctor ${result.rows[0].name}`,
+      description: `Soft-deleted doctor ${result.rows[0].name}`,
     });
     res.json({ success: true, message: 'Doctor deleted successfully' });
+}));
+
+// POST /api/doctors/:id/restore — admin only
+router.post('/:id/restore', requireRole('admin'), asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      `UPDATE doctors SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL RETURNING *`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Doctor not found or is not deleted' });
+    }
+    const doctor = transformRow(result.rows[0]);
+    await auditService.logAction({
+      staffId: req.staffID ?? '',
+      action: 'UPDATE',
+      entityType: 'doctor',
+      entityId: req.params.id,
+      description: `Restored doctor ${doctor.name}`,
+    });
+    res.json({ success: true, data: doctor });
 }));
 
 export default router;

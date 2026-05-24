@@ -114,6 +114,27 @@ export function useDeletePatient() {
   });
 }
 
+// Query hook for soft-deleted patients (admin only)
+export function useDeletedPatients() {
+  return useQuery({
+    queryKey: ['patients', 'deleted'],
+    queryFn: () => patientApi.listDeletedPatients(),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+// Mutation hook for restoring a soft-deleted patient
+export function useRestorePatient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patientId: string) => patientApi.restorePatient(patientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['patients', 'deleted'] });
+    },
+  });
+}
+
 // Paginated query hook — for the patient list page (does not affect other usePatients callers)
 export function usePaginatedPatients(page: number, search: string) {
   return useQuery({

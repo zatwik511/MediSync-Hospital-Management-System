@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { usePaginatedPatients, useDeletePatient, useCreatePatient } from '../hooks/usePatients';
+import { usePaginatedPatients, useDeletePatient, useCreatePatient, useDeletedPatients, useRestorePatient } from '../hooks/usePatients';
 import { SkeletonTableRow } from './Skeleton';
 import { Pagination } from './Pagination';
-import { Trash2, Download, UserPlus, X, Plus } from 'lucide-react';
+import { Trash2, Download, UserPlus, X, Plus, RotateCcw, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { downloadCsv } from '../utils/exportCsv';
+import { useAuth } from '../hooks/useAuth';
 
 function calcAge(dob?: string | null): string {
   if (!dob) return '—';
@@ -28,11 +29,17 @@ export function PatientList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [apiSearch, setApiSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const deletePatient = useDeletePatient();
   const createPatient = useCreatePatient();
+  const restorePatient = useRestorePatient();
   const navigate = useNavigate();
+  const user = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  const { data: deletedPatients, isLoading: deletedLoading } = useDeletedPatients();
 
   // Debounce search — reset to page 1 and fire new request after 350 ms idle
   useEffect(() => {
@@ -132,6 +139,18 @@ export function PatientList() {
             <UserPlus className="w-4 h-4" />
             Add Patient
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowDeleted(v => !v)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 border rounded-md text-sm whitespace-nowrap font-medium transition-colors ${showDeleted ? 'bg-amber-50 border-amber-400 text-amber-700 hover:bg-amber-100' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+            >
+              <Eye className="w-4 h-4" />
+              {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
+              {deletedPatients && deletedPatients.length > 0 && (
+                <span className="ml-0.5 bg-amber-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">{deletedPatients.length > 9 ? '9+' : deletedPatients.length}</span>
+              )}
+            </button>
+          )}
           <button
             onClick={() =>
               downloadCsv(
@@ -239,6 +258,53 @@ export function PatientList() {
             onPageChange={setPage}
           />
         </>
+      )}
+
+      {/* Deleted patients panel (admin only) */}
+      {isAdmin && showDeleted && (
+        <div className="mt-6 border border-amber-200 rounded-xl overflow-hidden">
+          <div className="bg-amber-50 px-4 py-3 border-b border-amber-200">
+            <h3 className="text-sm font-semibold text-amber-800">Deleted Patients</h3>
+            <p className="text-xs text-amber-600 mt-0.5">These patients have been soft-deleted and can be restored.</p>
+          </div>
+          {deletedLoading ? (
+            <div className="p-4 text-sm text-gray-400 animate-pulse">Loading deleted patients…</div>
+          ) : !deletedPatients || deletedPatients.length === 0 ? (
+            <div className="p-6 text-center text-sm text-gray-400">No deleted patients</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-amber-100 bg-amber-50/50">
+                  <th className="text-left py-2 px-4 font-semibold text-gray-600">Name</th>
+                  <th className="text-left py-2 px-4 font-semibold text-gray-600">Address</th>
+                  <th className="text-left py-2 px-4 font-semibold text-gray-600">Deleted</th>
+                  <th className="py-2 px-4" />
+                </tr>
+              </thead>
+              <tbody>
+                {deletedPatients.map(p => (
+                  <tr key={p.id} className="border-b border-amber-50 last:border-0 bg-white hover:bg-amber-50/30 transition-colors">
+                    <td className="py-2.5 px-4 font-medium text-gray-700">{p.name}</td>
+                    <td className="py-2.5 px-4 text-gray-500 text-xs">{(p as any).address || '—'}</td>
+                    <td className="py-2.5 px-4 text-gray-400 text-xs whitespace-nowrap">
+                      {(p as any).deleted_at ? new Date((p as any).deleted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                    <td className="py-2.5 px-4 text-right">
+                      <button
+                        onClick={() => restorePatient.mutate(p.id)}
+                        disabled={restorePatient.isPending}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-xs font-medium hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Restore
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
 
       {showModal && (

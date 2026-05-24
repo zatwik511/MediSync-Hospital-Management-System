@@ -27,6 +27,12 @@ router.get('/:id', asyncHandler(async (req, res) => {
     res.json({ success: true, data: patient });
 }));
 
+// GET /api/patients/deleted — admin only, list soft-deleted patients
+router.get('/deleted', requireRole('admin'), asyncHandler(async (req, res) => {
+    const patients = await patientService.listDeletedPatients();
+    res.json({ success: true, data: patients });
+}));
+
 // GET /api/patients — all roles
 router.get('/', asyncHandler(async (req, res) => {
     const { page, limit, search = '' } = req.query as Record<string, string>;
@@ -42,10 +48,16 @@ router.get('/', asyncHandler(async (req, res) => {
     res.json({ success: true, data: patients });
 }));
 
-// DELETE /api/patients/:id — admin only
+// DELETE /api/patients/:id — admin only (soft delete)
 router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     await patientService.deletePatient(req.params.id, req.staffID);
     res.json({ success: true, message: 'Patient deleted successfully' });
+}));
+
+// POST /api/patients/:id/restore — admin only
+router.post('/:id/restore', requireRole('admin'), asyncHandler(async (req, res) => {
+    const patient = await patientService.restorePatient(req.params.id, req.staffID);
+    res.json({ success: true, data: patient });
 }));
 
 // PUT /api/patients/:id — admin, receptionist

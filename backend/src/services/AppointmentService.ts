@@ -354,7 +354,7 @@ export class AppointmentService {
   }
 
   async listDoctors(): Promise<Doctor[]> {
-    const result = await pool.query(`SELECT * FROM doctors ORDER BY name ASC`);
+    const result = await pool.query(`SELECT * FROM doctors WHERE deleted_at IS NULL ORDER BY name ASC`);
     return result.rows.map(row => ({
       id: row.id,
       name: row.name,

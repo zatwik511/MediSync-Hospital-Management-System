@@ -38,6 +38,25 @@ export function useDeleteDoctor() {
   });
 }
 
+export function useDeletedDoctors() {
+  return useQuery({
+    queryKey: ['doctors', 'deleted'],
+    queryFn: () => doctorApi.listDeletedDoctors(),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+export function useRestoreDoctor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => doctorApi.restoreDoctor(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: DOCTORS_KEY });
+      queryClient.invalidateQueries({ queryKey: ['doctors', 'deleted'] });
+    },
+  });
+}
+
 export function useDoctorAvailability(doctorId: string) {
   return useQuery({
     queryKey: ['doctor-availability', doctorId],

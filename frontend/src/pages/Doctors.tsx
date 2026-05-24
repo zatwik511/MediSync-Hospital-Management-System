@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useDoctors, useCreateDoctor, useUpdateDoctor, useDeleteDoctor, useDoctorAvailability, useSetDoctorAvailability } from '../hooks/useDoctors';
+import { useDoctors, useCreateDoctor, useUpdateDoctor, useDeleteDoctor, useDoctorAvailability, useSetDoctorAvailability, useDeletedDoctors, useRestoreDoctor } from '../hooks/useDoctors';
 import { SkeletonPersonCard } from '../components/Skeleton';
-import { Trash2, Pencil, X, Stethoscope, Clock } from 'lucide-react';
+import { Trash2, Pencil, X, Stethoscope, Clock, RotateCcw, Eye } from 'lucide-react';
 import type { Doctor, AvailabilitySlot } from '../types/appointments';
 import type { Staff } from '../types';
 import { apiClient } from '../api/client';
@@ -122,6 +122,9 @@ export function Doctors() {
   const createDoctor = useCreateDoctor();
   const updateDoctor = useUpdateDoctor();
   const deleteDoctor = useDeleteDoctor();
+  const { data: deletedDoctors, isLoading: deletedLoading } = useDeletedDoctors();
+  const restoreDoctor = useRestoreDoctor();
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const { data: allStaff } = useQuery({
     queryKey: ['staff'],
@@ -337,6 +340,16 @@ export function Doctors() {
                   <span className="ml-2 text-sm font-normal text-gray-500">{doctors.length} total</span>
                 )}
               </h2>
+              <button
+                onClick={() => setShowDeleted(v => !v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-xs font-medium transition-colors ${showDeleted ? 'bg-amber-50 border-amber-400 text-amber-700 hover:bg-amber-100' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
+                {deletedDoctors && deletedDoctors.length > 0 && (
+                  <span className="bg-amber-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">{deletedDoctors.length > 9 ? '9+' : deletedDoctors.length}</span>
+                )}
+              </button>
             </div>
 
             {doctors && doctors.length > 0 ? (
@@ -397,6 +410,40 @@ export function Doctors() {
                 <Stethoscope className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 font-medium">No doctors yet</p>
                 <p className="text-gray-400 text-sm mt-1">Add your first doctor using the form on the left.</p>
+              </div>
+            )}
+
+            {/* Deleted doctors panel */}
+            {showDeleted && (
+              <div className="mt-6 border border-amber-200 rounded-xl overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-200">
+                  <h3 className="text-sm font-semibold text-amber-800">Deleted Doctors</h3>
+                  <p className="text-xs text-amber-600 mt-0.5">These doctors have been soft-deleted and can be restored.</p>
+                </div>
+                {deletedLoading ? (
+                  <div className="p-4 text-sm text-gray-400 animate-pulse">Loading deleted doctors…</div>
+                ) : !deletedDoctors || deletedDoctors.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-gray-400">No deleted doctors</div>
+                ) : (
+                  <div className="divide-y divide-amber-50">
+                    {deletedDoctors.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-amber-50/30 transition-colors">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{doc.name}</p>
+                          <p className="text-xs text-gray-400">{doc.specialty}</p>
+                        </div>
+                        <button
+                          onClick={() => restoreDoctor.mutate(doc.id)}
+                          disabled={restoreDoctor.isPending}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-xs font-medium hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Restore
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
