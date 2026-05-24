@@ -135,7 +135,7 @@ export function PatientList() {
           <button
             onClick={() =>
               downloadCsv(
-                `patients-${new Date().toISOString().split('T')[0]}.csv`,
+                `patients-${new Date().toLocaleDateString('en-CA')}.csv`,
                 ['Name', 'Age', 'Gender', 'Conditions', 'Diagnosis', 'Total Cost (£)', 'Registered'],
                 patients.map((p) => [
                   p.name,

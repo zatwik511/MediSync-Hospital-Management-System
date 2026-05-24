@@ -22,10 +22,10 @@ export function MyAppointments() {
   };
 
   const upcoming = appointments?.filter(a =>
-    a.status !== 'Cancelled' && a.date >= new Date().toISOString().split('T')[0]
+    a.status !== 'Cancelled' && a.date >= new Date().toLocaleDateString('en-CA')
   ) ?? [];
   const past = appointments?.filter(a =>
-    a.status === 'Cancelled' || a.date < new Date().toISOString().split('T')[0]
+    a.status === 'Cancelled' || a.date < new Date().toLocaleDateString('en-CA')
   ) ?? [];
 
   if (isLoading) return <PatientLayout><LoadingSpinner /></PatientLayout>;

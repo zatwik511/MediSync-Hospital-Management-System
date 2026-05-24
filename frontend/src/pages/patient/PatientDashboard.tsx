@@ -35,7 +35,7 @@ export function PatientDashboard() {
   const { data: financial, isLoading: financialLoading } = usePatientFinancial();
   const { data: appointments = [], isLoading: apptLoading } = useMyAppointments();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   const upcomingCount = appointments.filter(
     (a) => a.status !== 'Cancelled' && a.status !== 'Completed' && a.date >= today
   ).length;

@@ -66,7 +66,7 @@ export class AppointmentService {
   }
 
   async createAppointment(data: CreateAppointmentDTO, staffId = ''): Promise<Appointment> {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = new Date().toLocaleDateString('en-CA');
     if (data.date < todayStr) throw new Error('Appointment date cannot be in the past');
 
     let result;
@@ -231,7 +231,7 @@ export class AppointmentService {
     const existing = await this.getAppointment(appointmentID);
     if (!existing) throw new Error('Appointment not found');
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = new Date().toLocaleDateString('en-CA');
     if (date < todayStr) throw new Error('Appointment date cannot be in the past');
 
     let result;

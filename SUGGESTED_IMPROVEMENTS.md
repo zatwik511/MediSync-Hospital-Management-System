@@ -22,11 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.10 `toISOString().split('T')[0]` usage (potential leftover)
-- **Files:** Any remaining places not yet updated
-- **Problem:** `toISOString()` returns UTC time. In UTC+5:30, midnight local = 18:30 UTC previous day, so the date string is off by one.
-- **Fix:** Always use `new Date().toLocaleDateString('en-CA')` for local-date strings (already fixed in dashboards and MySchedule, but verify no regressions elsewhere).
-
 ---
 
 ## 6. Missing Features & UX Gaps
@@ -141,11 +136,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 1 | Medium |
+| Code Quality | 0 | — |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **20** | — |
+| **Total** | **19** | — |
 
 ---
 

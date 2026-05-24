@@ -104,7 +104,7 @@ export function Appointments() {
     setBookSubmitted(true);
     setBookApiError('');
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const errs = {
       patient: !bookPatientID ? 'Please select a patient' : '',
       doctor:  !bookDoctorID  ? 'Please select a doctor'  : '',
@@ -178,7 +178,7 @@ export function Appointments() {
 
   const handleExportCsv = () => {
     downloadCsv(
-      `appointments-${new Date().toISOString().split('T')[0]}.csv`,
+      `appointments-${new Date().toLocaleDateString('en-CA')}.csv`,
       ['Patient', 'Doctor', 'Specialty', 'Date', 'Time', 'Type', 'Status', 'Reason'],
       appointments.map((a) => {
         const patient = patients?.find((p) => p.id === a.patientID);
