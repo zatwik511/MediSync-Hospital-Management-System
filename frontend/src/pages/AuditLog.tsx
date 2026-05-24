@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useAuditLogs } from '../hooks/useAudit';
 import { SkeletonTableRow } from '../components/Skeleton';
+import { auditApi } from '../api/auditApi';
 import type { AuditLog } from '../api/auditApi';
-import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 const PAGE_SIZE = 50;
 
@@ -27,10 +28,11 @@ function formatDate(iso: string) {
 }
 
 export function AuditLog() {
-  const [actionFilter, setActionFilter] = useState('');
-  const [entityFilter, setEntityFilter] = useState('');
-  const [staffSearch, setStaffSearch]   = useState('');
-  const [page, setPage]                 = useState(1);
+  const [actionFilter, setActionFilter]   = useState('');
+  const [entityFilter, setEntityFilter]   = useState('');
+  const [staffSearch, setStaffSearch]     = useState('');
+  const [page, setPage]                   = useState(1);
+  const [exporting, setExporting]         = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useAuditLogs(
     { action: actionFilter || undefined, entityType: entityFilter || undefined },
@@ -49,6 +51,18 @@ export function AuditLog() {
   }, [logs, staffSearch]);
 
   const resetPage = () => setPage(1);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await auditApi.exportCsv({
+        action: actionFilter || undefined,
+        entityType: entityFilter || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (isLoading) return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -93,14 +107,24 @@ export function AuditLog() {
             <h1 className="text-4xl font-bold text-gray-900">Audit Log</h1>
             <p className="text-gray-500 mt-1">{total} events</p>
           </div>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <Download size={14} className={exporting ? 'animate-pulse' : ''} />
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Filter bar */}

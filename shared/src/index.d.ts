@@ -96,7 +96,7 @@ export interface CreateVitalDTO {
 export interface CreateStaffDTO {
   name: string;
   address: string;
-  role: 'radiologist' | 'doctor' | 'admin' | 'receptionist';
+  role: string;
   specialization: string;
 }
 

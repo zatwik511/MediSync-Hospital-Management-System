@@ -420,7 +420,11 @@ export function Appointments() {
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           <h2 className="text-xl font-bold text-gray-900">Appointment Analytics</h2>
-          {!analytics && <LoadingSpinner />}
+          {!analytics && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonStatCard key={i} />)}
+            </div>
+          )}
           {analytics && (<>
 
           {/* Top stat cards */}

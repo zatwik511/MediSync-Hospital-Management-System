@@ -54,7 +54,7 @@ function NotificationItem({ notif, onRead }: { notif: Notification; onRead: (id:
   );
 }
 
-function NotificationDropdown({ onClose }: { onClose: () => void }) {
+function NotificationDropdown({ onClose: _onClose }: { onClose: () => void }) {
   const { data } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();

@@ -26,11 +26,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 6. Missing Features & UX Gaps
 
-### 6.1 No export / download for audit logs
-- **File:** `backend/src/routes/auditRoutes.ts`, `frontend/src/pages/AuditLogs.tsx`
-- **Problem:** Audit logs can only be viewed in the UI. For compliance and investigation purposes, admins typically need to export to CSV or PDF.
-- **Fix:** Add a `GET /api/audit/export?format=csv` endpoint and a download button in the UI.
-
 ### 6.2 No appointment reminders
 - **Problem:** Patients receive notifications in-app but no email or SMS reminder before an appointment.
 - **Fix:** Add a background job (cron) that runs daily, finds appointments 24h away, and sends email reminders via a mail service (Nodemailer + SMTP or a transactional provider).
@@ -137,10 +132,10 @@ This file captures all identified issues, technical debt, and improvement opport
 | Input Validation | 0 | — |
 | Performance | 0 | — |
 | Code Quality | 0 | — |
-| Missing Features / UX | 10 | Medium |
+| Missing Features / UX | 9 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **19** | — |
+| **Total** | **18** | — |
 
 ---
 

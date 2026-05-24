@@ -45,7 +45,8 @@ export function AdminDashboard({ user }: { user: AuthUser }) {
   const { data: patients = [] }         = usePatients();
   const { data: appointments = [], isLoading } = useAppointments();
   const { data: staff = [] }            = useStaff();
-  const { data: auditLogs = [] }        = useAuditLogs();
+  const { data: auditData }             = useAuditLogs();
+  const auditLogs                       = auditData?.items ?? [];
   const cancelMutation                  = useCancelAppointment();
 
   const cancellingId = cancelMutation.isPending ? (cancelMutation.variables ?? null) : null;

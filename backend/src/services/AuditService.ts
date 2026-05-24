@@ -96,6 +96,27 @@ class AuditService {
     return { items, total, page, limit: safeLimit };
   }
 
+  async getAllLogsForExport(filters?: { entityType?: string; action?: string }): Promise<AuditLog[]> {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (filters?.entityType) {
+      values.push(filters.entityType);
+      conditions.push(`entity_type = $${values.length}`);
+    }
+    if (filters?.action) {
+      values.push(filters.action);
+      conditions.push(`action = $${values.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const result = await pool.query(
+      `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC`,
+      values,
+    );
+    return result.rows as AuditLog[];
+  }
+
   async getLogsByStaff(staffId: string, page = 1, limit = 50): Promise<PaginatedAuditResult> {
     const safeLimit = Math.min(limit, 200);
     const offset = (page - 1) * safeLimit;

@@ -43,4 +43,24 @@ export const auditApi = {
     if (!response.data.success) throw new Error(response.data.error || 'Failed to fetch staff logs');
     return response.data.data || { items: [], total: 0, page, limit };
   },
+
+  async exportCsv(filters?: { entityType?: string; action?: string }): Promise<void> {
+    const params = new URLSearchParams();
+    if (filters?.entityType) params.set('entityType', filters.entityType);
+    if (filters?.action) params.set('action', filters.action);
+
+    const response = await apiClient.get(`/audit/export?${params.toString()}`, {
+      responseType: 'blob',
+    });
+
+    const blob = new Blob([response.data as BlobPart], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-logs-${new Date().toLocaleDateString('en-CA')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
 };
