@@ -22,15 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.6 Hard-coded role-to-prefix mapping duplicated
-- **File:** `backend/src/services/StaffService.ts`
-- **Problem:** `ROLE_PREFIX` mapping (`{ admin: 'ADM', doctor: 'DOC', ... }`) is duplicated and may diverge from constants elsewhere.
-- **Fix:** Extract to a single shared `constants.ts` file and import where needed.
-
-### 5.7 `ROLE_PREFIX` mapping duplicated
-- **File:** `backend/src/services/StaffService.ts`
-- **Problem:** Same as above — also appears in seeds/migrations. Single source of truth is cleaner.
-
 ### 5.8 No React error boundary
 - **File:** `frontend/src/App.tsx`, `frontend/src/main.tsx`
 - **Problem:** A runtime error in any component bubbles to a blank white screen with no user feedback.
@@ -160,11 +151,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 5 | Medium |
+| Code Quality | 3 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **24** | — |
+| **Total** | **22** | — |
 
 ---
 

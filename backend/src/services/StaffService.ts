@@ -3,13 +3,7 @@ import { pool } from '../database/db';
 import { Staff, CreateStaffDTO } from '../models/types';
 import { auditService } from './AuditService';
 import { AccountLockedError } from './PatientAuthService';
-
-const ROLE_PREFIX: Record<string, string> = {
-  doctor:       'DOC',
-  admin:        'ADM',
-  receptionist: 'REC',
-  radiologist:  'RAD',
-};
+import { ROLE_PREFIX, ROLE_PREFIX_DEFAULT } from '../constants';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
@@ -25,7 +19,7 @@ export class StaffService {
   }
 
   private async generateStaffCode(role: string): Promise<string> {
-    const prefix = ROLE_PREFIX[role] || 'STF';
+    const prefix = ROLE_PREFIX[role] || ROLE_PREFIX_DEFAULT;
     const result = await pool.query(
       `SELECT COUNT(*) AS count FROM staff WHERE staff_code LIKE $1`,
       [`${prefix}-%`]

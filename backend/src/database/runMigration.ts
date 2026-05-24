@@ -20,6 +20,7 @@ async function runMigration() {
     ),
     assignments AS (
       SELECT id,
+        -- Prefixes must match ROLE_PREFIX in src/constants.ts
         CASE
           WHEN role = 'doctor'       THEN 'DOC'
           WHEN role = 'admin'        THEN 'ADM'
