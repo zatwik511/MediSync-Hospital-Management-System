@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import { patientAuthService, AccountLockedError } from '../services/PatientAuthService';
 
 const router = Router();
@@ -6,7 +7,7 @@ const router = Router();
 patientAuthService.ensureColumns().catch(console.error);
 
 // POST /api/patient-auth/register
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const { name, email, pin } = req.body;
 
   if (!name || !email || !pin) {
@@ -21,17 +22,12 @@ router.post('/register', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid email address' });
   }
 
-  try {
-    const patient = await patientAuthService.register(name.trim(), email.trim(), pin);
-    return res.status(201).json({ success: true, data: patient });
-  } catch (err: any) {
-    const status = err.message.includes('already exists') ? 409 : 400;
-    return res.status(status).json({ success: false, error: err.message });
-  }
-});
+  const patient = await patientAuthService.register(name.trim(), email.trim(), pin);
+  return res.status(201).json({ success: true, data: patient });
+}));
 
 // POST /api/patient-auth/login
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { email, pin } = req.body;
 
   if (!email || !pin) {
@@ -48,8 +44,8 @@ router.post('/login', async (req: Request, res: Response) => {
     if (err instanceof AccountLockedError) {
       return res.status(429).json({ success: false, error: err.message });
     }
-    return res.status(500).json({ success: false, error: 'An unexpected error occurred' });
+    throw err;
   }
-});
+}));
 
 export default router;

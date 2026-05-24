@@ -22,21 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.1 `error: any` in all catch blocks
-- **Files:** All backend route and service files (30+ instances)
-- **Problem:** Using `catch (error: any)` suppresses TypeScript's type safety. Accessing `error.message` on a non-Error value causes runtime issues.
-- **Fix:** Use `catch (error: unknown)` and narrow: `const msg = error instanceof Error ? error.message : 'Unknown error'`.
-
-### 5.2 No `asyncHandler` wrapper — repetitive try-catch
-- **Files:** All backend route files
-- **Problem:** Every route handler wraps its body in an identical try-catch pattern. This is ~200 lines of boilerplate.
-- **Fix:** Create a utility:
-  ```typescript
-  const asyncHandler = (fn: RequestHandler): RequestHandler =>
-    (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-  ```
-  Then routes become: `router.get('/', asyncHandler(async (req, res) => { ... }))`.
-
 ### 5.3 `row: any` in service transform functions
 - **Files:** `backend/src/routes/doctorRoutes.ts`, `backend/src/services/ImageService.ts`, `backend/src/services/AppointmentService.ts`
 - **Problem:** `function transformRow(row: any)` gives up all type safety on DB result rows.
@@ -190,11 +175,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 10 | Medium |
+| Code Quality | 8 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **29** | — |
+| **Total** | **27** | — |
 
 ---
 

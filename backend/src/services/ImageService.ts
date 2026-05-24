@@ -89,9 +89,9 @@ export class ImageService {
       const absolutePath = path.join(process.cwd(), relativePath);
       try {
         await fs.promises.unlink(absolutePath);
-      } catch (err: any) {
-        if (err.code !== 'ENOENT') {
-          console.error(`Could not delete file ${absolutePath}:`, err.message);
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+          console.error(`Could not delete file ${absolutePath}:`, err instanceof Error ? err.message : String(err));
           throw new Error('Failed to delete image file; database record was not removed');
         }
         // ENOENT: file already gone — safe to proceed

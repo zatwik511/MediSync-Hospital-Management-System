@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import { reportService } from '../services/ReportService';
 import { pool } from '../database/db';
 import { requireRole } from '../middleware/authMiddleware';
@@ -6,30 +7,21 @@ import { requireRole } from '../middleware/authMiddleware';
 const router = express.Router();
 
 // GET /api/reports/patient/:patientID — all roles
-router.get('/patient/:patientID', async (req: Request, res: Response) => {
-  try {
+router.get('/patient/:patientID', asyncHandler(async (req, res) => {
     const patientID = req.params.patientID as string;
     const report = await reportService.generatePatientHistory(patientID);
     res.json({ success: true, data: report });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // GET /api/reports/diagnostic/:patientID — admin, doctor, radiologist
-router.get('/diagnostic/:patientID', requireRole('admin', 'doctor', 'radiologist'), async (req: Request, res: Response) => {
-  try {
+router.get('/diagnostic/:patientID', requireRole('admin', 'doctor', 'radiologist'), asyncHandler(async (req, res) => {
     const patientID = req.params.patientID as string;
     const report = await reportService.generateDiagnosticReport(patientID);
     res.json({ success: true, data: report });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // GET /api/reports/appointment-analytics — admin only
-router.get('/appointment-analytics', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.get('/appointment-analytics', requireRole('admin'), asyncHandler(async (req, res) => {
     // Total counts by status
     const statusResult = await pool.query(`
       SELECT status, COUNT(*) as count
@@ -95,14 +87,10 @@ router.get('/appointment-analytics', requireRole('admin'), async (req: Request, 
         })),
       },
     });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // GET /api/reports/appointment-analytics/advanced — admin only
-router.get('/appointment-analytics/advanced', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.get('/appointment-analytics/advanced', requireRole('admin'), asyncHandler(async (req, res) => {
     // Busiest day of week (0=Sun … 6=Sat), non-cancelled only
     const dowResult = await pool.query(`
       SELECT
@@ -201,9 +189,6 @@ router.get('/appointment-analytics/advanced', requireRole('admin'), async (req: 
         heatmap,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 export default router;

@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import { auditService } from '../services/AuditService';
 import { requireRole } from '../middleware/authMiddleware';
 
@@ -13,28 +14,20 @@ function parsePaginationParams(query: Record<string, string>): { page: number; l
 }
 
 // GET /api/audit — admin only
-router.get('/', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.get('/', requireRole('admin'), asyncHandler(async (req, res) => {
     const { entityType, action } = req.query as Record<string, string>;
     const pagination = parsePaginationParams(req.query as Record<string, string>);
     if ('error' in pagination) return res.status(400).json({ success: false, error: pagination.error });
     const result = await auditService.getLogs({ entityType, action }, pagination.page, pagination.limit);
     res.json({ success: true, data: result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // GET /api/audit/staff/:staffId — admin only
-router.get('/staff/:staffId', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.get('/staff/:staffId', requireRole('admin'), asyncHandler(async (req, res) => {
     const pagination = parsePaginationParams(req.query as Record<string, string>);
     if ('error' in pagination) return res.status(400).json({ success: false, error: pagination.error });
     const result = await auditService.getLogsByStaff(req.params.staffId, pagination.page, pagination.limit);
     res.json({ success: true, data: result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 export default router;

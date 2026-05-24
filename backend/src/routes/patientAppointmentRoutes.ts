@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import { appointmentService } from '../services/AppointmentService';
 import { notificationService } from '../services/NotificationService';
 import { pool } from '../database/db';
@@ -6,62 +7,44 @@ import { pool } from '../database/db';
 const router = Router();
 
 // GET /api/patient/appointments/doctors  — public list of doctors
-router.get('/doctors', async (req: Request, res: Response) => {
-  try {
+router.get('/doctors', asyncHandler(async (req, res) => {
     const doctors = await appointmentService.listDoctors();
     res.json({ success: true, data: doctors });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: 'An unexpected error occurred' });
-  }
-});
+}));
 
 // GET /api/patient/appointments/slots/:doctorID/:date  — available slots
-router.get('/slots/:doctorID/:date', async (req: Request, res: Response) => {
-  try {
+router.get('/slots/:doctorID/:date', asyncHandler(async (req, res) => {
     const slots = await appointmentService.getBookedSlots(req.params.doctorID, req.params.date);
     res.json({ success: true, data: slots });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: 'An unexpected error occurred' });
-  }
-});
+}));
 
 // GET /api/patient/appointments  — own appointments only (patientID from middleware)
-router.get('/', async (req: Request, res: Response) => {
-  try {
+router.get('/', asyncHandler(async (req, res) => {
     const appointments = await appointmentService.getAppointmentsByPatient(req.patientID!);
     res.json({ success: true, data: appointments });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: 'An unexpected error occurred' });
-  }
-});
+}));
 
 // POST /api/patient/appointments  — book; patientID locked to authenticated patient
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { doctorID, date, time, type, reason } = req.body;
 
   if (!doctorID || !date || !time) {
     return res.status(400).json({ success: false, error: 'doctorID, date and time are required' });
   }
 
-  try {
-    const appointment = await appointmentService.createAppointment({
-      patientID: req.patientID!,
-      doctorID,
-      date,
-      time,
-      type,
-      reason,
-    });
-    res.status(201).json({ success: true, data: appointment });
-  } catch (err: any) {
-    const status = err.message.includes('already booked') ? 409 : 500;
-    res.status(status).json({ success: false, error: err.message });
-  }
-});
+  const appointment = await appointmentService.createAppointment({
+    patientID: req.patientID!,
+    doctorID,
+    date,
+    time,
+    type,
+    reason,
+  });
+  res.status(201).json({ success: true, data: appointment });
+}));
 
 // PUT /api/patient/appointments/:id/cancel  — cancel own appointment only
-router.put('/:id/cancel', async (req: Request, res: Response) => {
-  try {
+router.put('/:id/cancel', asyncHandler(async (req, res) => {
     // Ownership check pushed into SQL — patient_id must match the authenticated patient
     const result = await pool.query(
       `UPDATE appointments SET status = 'Cancelled'
@@ -84,9 +67,6 @@ router.put('/:id/cancel', async (req: Request, res: Response) => {
     );
 
     res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: 'An unexpected error occurred' });
-  }
-});
+}));
 
 export default router;

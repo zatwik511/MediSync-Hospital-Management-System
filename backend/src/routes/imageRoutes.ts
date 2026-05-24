@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -53,18 +54,13 @@ const upload = multer({
 });
 
 // GET /api/images/count — all roles
-router.get('/count', async (req: Request, res: Response) => {
-  try {
+router.get('/count', asyncHandler(async (req, res) => {
     const count = await imageService.getTotalImageCount();
     res.json({ success: true, data: count });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // POST /api/images/upload — admin, doctor, radiologist
-router.post('/upload', requireRole('admin', 'doctor', 'radiologist'), upload.single('file'), async (req: Request, res: Response) => {
-  try {
+router.post('/upload', requireRole('admin', 'doctor', 'radiologist'), upload.single('file'), asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
 
     // Secondary MIME type check — defence in depth in case fileFilter is bypassed
@@ -92,24 +88,16 @@ router.post('/upload', requireRole('admin', 'doctor', 'radiologist'), upload.sin
       uploadedBy
     );
     res.status(201).json({ success: true, data: image });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // GET /api/images/patient/:patientID — all roles
-router.get('/patient/:patientID', async (req: Request, res: Response) => {
-  try {
+router.get('/patient/:patientID', asyncHandler(async (req, res) => {
     const images = await imageService.getImagesByPatient(req.params.patientID, req.staffID);
     res.json({ success: true, data: images });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // PUT /api/images/:id/classify — admin, doctor, radiologist
-router.put('/:id/classify', requireRole('admin', 'doctor', 'radiologist'), async (req: Request, res: Response) => {
-  try {
+router.put('/:id/classify', requireRole('admin', 'doctor', 'radiologist'), asyncHandler(async (req, res) => {
     const { imageType, diseaseType: rawDiseaseType } = req.body;
     const diseaseType = sanitizeDiseaseType(rawDiseaseType);
     if (rawDiseaseType && diseaseType === null) {
@@ -118,19 +106,12 @@ router.put('/:id/classify', requireRole('admin', 'doctor', 'radiologist'), async
     const image = await imageService.classifyImage(req.params.id, imageType, diseaseType || '', req.staffID);
     if (!image) return res.status(404).json({ success: false, error: 'Image not found' });
     res.json({ success: true, data: image });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // DELETE /api/images/:id — admin, radiologist
-router.delete('/:id', requireRole('admin', 'radiologist'), async (req: Request, res: Response) => {
-  try {
+router.delete('/:id', requireRole('admin', 'radiologist'), asyncHandler(async (req, res) => {
     await imageService.deleteImage(req.params.id, req.staffID);
     res.json({ success: true });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 export default router;

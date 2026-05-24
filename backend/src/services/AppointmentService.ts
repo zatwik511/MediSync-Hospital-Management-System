@@ -63,8 +63,8 @@ export class AppointmentService {
          RETURNING *`,
         [data.patientID, data.doctorID, data.date, data.time, data.type || 'In-Person', data.reason || null]
       );
-    } catch (err: any) {
-      if (err.code === '23505') throw new Error('This time slot is already booked');
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === '23505') throw new Error('This time slot is already booked');
       throw err;
     }
     const appt = this.transformAppointment(result.rows[0]);
@@ -226,8 +226,8 @@ export class AppointmentService {
         `UPDATE appointments SET date = $1, time = $2, status = 'Confirmed' WHERE id = $3 RETURNING *`,
         [date, time, appointmentID]
       );
-    } catch (err: any) {
-      if (err.code === '23505') throw new Error('This time slot is already booked');
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === '23505') throw new Error('This time slot is already booked');
       throw err;
     }
     const appt = this.transformAppointment(result.rows[0]);

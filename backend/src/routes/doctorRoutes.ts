@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import { pool } from '../database/db';
 import { auditService } from '../services/AuditService';
 import { requireRole } from '../middleware/authMiddleware';
@@ -17,18 +18,13 @@ function transformRow(row: any) {
 }
 
 // GET /api/doctors — all roles
-router.get('/', async (req: Request, res: Response) => {
-  try {
+router.get('/', asyncHandler(async (req, res) => {
     const result = await pool.query(`SELECT * FROM doctors ORDER BY name ASC`);
     res.json({ success: true, data: result.rows.map(transformRow) });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // POST /api/doctors — admin only
-router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.post('/', requireRole('admin'), asyncHandler(async (req, res) => {
     const { name, specialty, availableDays, staffId } = req.body;
     if (!name?.trim() || !specialty?.trim()) {
       return res.status(400).json({ success: false, error: 'Name and specialty are required' });
@@ -49,14 +45,10 @@ router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
       description: `Created doctor ${name} (${specialty})`,
     });
     res.status(201).json({ success: true, data: doctor });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // PUT /api/doctors/:id — admin only
-router.put('/:id', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.put('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     const { name, specialty, availableDays, staffId } = req.body;
     if (!name?.trim() || !specialty?.trim()) {
       return res.status(400).json({ success: false, error: 'Name and specialty are required' });
@@ -80,14 +72,10 @@ router.put('/:id', requireRole('admin'), async (req: Request, res: Response) => 
       description: `Updated doctor ${name}`,
     });
     res.json({ success: true, data: doctor });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // DELETE /api/doctors/:id — admin only
-router.delete('/:id', requireRole('admin'), async (req: Request, res: Response) => {
-  try {
+router.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     const result = await pool.query(
       `DELETE FROM doctors WHERE id = $1 RETURNING name`,
       [req.params.id]
@@ -103,9 +91,6 @@ router.delete('/:id', requireRole('admin'), async (req: Request, res: Response) 
       description: `Deleted doctor ${result.rows[0].name}`,
     });
     res.json({ success: true, message: 'Doctor deleted successfully' });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 export default router;

@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
 import { prescriptionService } from '../services/PrescriptionService';
 import { requireRole } from '../middleware/authMiddleware';
 
@@ -8,21 +9,16 @@ const router = Router();
 prescriptionService.ensureTable().catch(console.error);
 
 // GET /api/prescriptions/patient/:patientId — all roles
-router.get('/patient/:patientId', async (req: Request, res: Response) => {
-  try {
+router.get('/patient/:patientId', asyncHandler(async (req, res) => {
     const prescriptions = await prescriptionService.getByPatient(
       req.params.patientId,
       req.staffID
     );
     res.json({ success: true, data: prescriptions });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // POST /api/prescriptions — admin, doctor
-router.post('/', requireRole('admin', 'doctor'), async (req: Request, res: Response) => {
-  try {
+router.post('/', requireRole('admin', 'doctor'), asyncHandler(async (req, res) => {
     const { patientId, medications, advice } = req.body;
 
     if (!patientId) {
@@ -42,19 +38,12 @@ router.post('/', requireRole('admin', 'doctor'), async (req: Request, res: Respo
       req.staffID ?? ''
     );
     res.status(201).json({ success: true, data: prescription });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 // DELETE /api/prescriptions/:id — admin, doctor
-router.delete('/:id', requireRole('admin', 'doctor'), async (req: Request, res: Response) => {
-  try {
+router.delete('/:id', requireRole('admin', 'doctor'), asyncHandler(async (req, res) => {
     await prescriptionService.delete(req.params.id, req.staffID ?? '');
     res.json({ success: true });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+}));
 
 export default router;
