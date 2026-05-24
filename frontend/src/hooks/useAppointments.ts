@@ -93,3 +93,13 @@ export function useCancelAppointment() {
     },
   });
 }
+
+export function useCompleteAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (appointmentId: string) => appointmentApi.completeAppointment(appointmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: APPOINTMENTS_KEY });
+    },
+  });
+}

@@ -58,6 +58,24 @@ export interface AvailableSlotsResult {
   hasAvailability: boolean;
 }
 
+// Valid outgoing transitions per status. Terminal states have empty arrays.
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  Pending:   ['Confirmed', 'Cancelled'],
+  Confirmed: ['Completed', 'Cancelled'],
+  Completed: [],
+  Cancelled: [],
+};
+
+function assertTransition(current: string, next: string): void {
+  const allowed = ALLOWED_TRANSITIONS[current] ?? [];
+  if (!allowed.includes(next)) {
+    throw new Error(
+      `Cannot transition appointment from '${current}' to '${next}'. ` +
+      (allowed.length ? `Allowed: ${allowed.join(', ')}` : 'No further transitions allowed.')
+    );
+  }
+}
+
 const DEFAULT_SLOTS = [
   '08:30', '09:00', '09:30', '10:00', '10:30', '11:00',
   '11:30', '14:00', '14:30', '15:00', '15:30', '16:00',
@@ -282,6 +300,10 @@ export class AppointmentService {
     const existing = await this.getAppointment(appointmentID);
     if (!existing) throw new Error('Appointment not found');
 
+    if (!['Confirmed', 'Pending'].includes(existing.status)) {
+      throw new Error(`Cannot reschedule a ${existing.status} appointment`);
+    }
+
     const todayStr = new Date().toLocaleDateString('en-CA');
     if (date < todayStr) throw new Error('Appointment date cannot be in the past');
 
@@ -308,6 +330,8 @@ export class AppointmentService {
 
   async cancelAppointment(appointmentID: string, staffId = ''): Promise<void> {
     const existing = await this.getAppointment(appointmentID);
+    if (!existing) throw new Error('Appointment not found');
+    assertTransition(existing.status, 'Cancelled');
 
     await pool.query(`UPDATE appointments SET status = 'Cancelled' WHERE id = $1`, [appointmentID]);
     await auditService.logAction({
@@ -346,6 +370,21 @@ export class AppointmentService {
       [doctorID, date]
     );
     return result.rows.map(row => row.time);
+  }
+
+  async completeAppointment(appointmentID: string, staffId = ''): Promise<void> {
+    const existing = await this.getAppointment(appointmentID);
+    if (!existing) throw new Error('Appointment not found');
+    assertTransition(existing.status, 'Completed');
+
+    await pool.query(`UPDATE appointments SET status = 'Completed' WHERE id = $1`, [appointmentID]);
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'appointment',
+      entityId: appointmentID,
+      description: `Marked appointment ${appointmentID} as Completed`,
+    });
   }
 
   async getTotalAppointmentCount(): Promise<number> {

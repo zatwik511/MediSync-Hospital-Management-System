@@ -26,11 +26,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 6. Missing Features & UX Gaps
 
-### 6.4 Appointment status transitions not guarded
-- **File:** `backend/src/services/AppointmentService.ts`
-- **Problem:** An appointment can be moved from `cancelled` back to `scheduled`, or `completed` to `cancelled`, without any guard on allowed state transitions.
-- **Fix:** Define a state machine: `scheduled → confirmed → completed | cancelled`. Reject transitions that don't follow the allowed paths.
-
 ### 6.5 No soft delete for patients or doctors
 - **File:** `backend/src/services/PatientService.ts`, `backend/src/services/DoctorService.ts`
 - **Problem:** Deleting a patient or doctor is a hard delete, even with cascade. Accidental deletions are unrecoverable.
@@ -124,10 +119,10 @@ This file captures all identified issues, technical debt, and improvement opport
 | Input Validation | 0 | — |
 | Performance | 0 | — |
 | Code Quality | 0 | — |
-| Missing Features / UX | 7 | Medium |
+| Missing Features / UX | 6 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **16** | — |
+| **Total** | **15** | — |
 
 ---
 

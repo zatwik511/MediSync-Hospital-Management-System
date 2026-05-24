@@ -99,4 +99,10 @@ router.put('/:id/cancel', requireRole('admin', 'receptionist', 'doctor'), asyncH
     res.json({ success: true, message: 'Appointment cancelled successfully' });
 }));
 
+// PUT /api/appointments/:id/complete — admin, doctor
+router.put('/:id/complete', requireRole('admin', 'doctor'), asyncHandler(async (req, res) => {
+    await appointmentService.completeAppointment(req.params.id, req.staffID);
+    res.json({ success: true, message: 'Appointment marked as completed' });
+}));
+
 export default router;

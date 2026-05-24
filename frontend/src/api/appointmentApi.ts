@@ -108,6 +108,17 @@ export const appointmentApi = {
     }
   },
 
+  // Mark an appointment as completed
+  async completeAppointment(appointmentId: string): Promise<void> {
+    const response = await apiClient.put<APIResponse<null>>(
+      `/appointments/${appointmentId}/complete`,
+      {}
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to complete appointment');
+    }
+  },
+
   // Get total appointment count for dashboard
   async getTotalAppointmentCount(): Promise<number> {
     const response = await apiClient.get<APIResponse<number>>('/appointments/count');

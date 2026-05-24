@@ -7,6 +7,7 @@ import {
   useCreateAppointment,
   useRescheduleAppointment,
   useCancelAppointment,
+  useCompleteAppointment,
 } from '../hooks/useAppointments';
 import { useAppointmentAnalytics, useAdvancedAppointmentAnalytics } from '../hooks/useReports';
 import { SkeletonTableRow, SkeletonStatCard } from '../components/Skeleton';
@@ -69,7 +70,8 @@ export function Appointments() {
   const { data: patients } = usePatients();
   const createAppointment = useCreateAppointment();
   const rescheduleAppointment = useRescheduleAppointment();
-  const cancelAppointment = useCancelAppointment();
+  const cancelAppointment     = useCancelAppointment();
+  const completeAppointment   = useCompleteAppointment();
 
   const { data: analytics } = useAppointmentAnalytics();
   const { data: advanced } = useAdvancedAppointmentAnalytics();
@@ -156,6 +158,11 @@ export function Appointments() {
   const handleCancel = async (id: string) => {
     if (!confirm('Are you sure you want to cancel this appointment?')) return;
     await cancelAppointment.mutateAsync(id);
+  };
+
+  const handleComplete = async (id: string) => {
+    if (!confirm('Mark this appointment as completed?')) return;
+    await completeAppointment.mutateAsync(id);
   };
 
   const openReschedule = (appointment: Appointment) => {
@@ -379,8 +386,18 @@ export function Appointments() {
                         </td>
                         <td className="py-3 px-4 text-gray-500 text-xs">{appointment.reason || '-'}</td>
                         <td className="py-3 px-4">
-                          {appointment.status !== 'Cancelled' && (
+                          {(appointment.status === 'Confirmed' || appointment.status === 'Pending') && (
                             <div className="flex justify-center gap-2">
+                              {appointment.status === 'Confirmed' && (
+                                <button
+                                  onClick={() => handleComplete(appointment.id)}
+                                  disabled={completeAppointment.isPending}
+                                  className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 disabled:opacity-50"
+                                  title="Mark Complete"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => openReschedule(appointment)}
                                 className="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200"
@@ -390,7 +407,8 @@ export function Appointments() {
                               </button>
                               <button
                                 onClick={() => handleCancel(appointment.id)}
-                                className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                                disabled={cancelAppointment.isPending}
+                                className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50"
                                 title="Cancel"
                               >
                                 <X className="w-3.5 h-3.5" />
