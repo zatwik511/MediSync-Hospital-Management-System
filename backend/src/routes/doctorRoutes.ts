@@ -6,7 +6,16 @@ import { requireRole } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-function transformRow(row: any) {
+interface DoctorRow {
+  id: string;
+  name: string;
+  specialty: string;
+  available_days: string[];
+  staff_id: string | null;
+  created_at: string;
+}
+
+function transformRow(row: DoctorRow) {
   return {
     id: row.id,
     name: row.name,

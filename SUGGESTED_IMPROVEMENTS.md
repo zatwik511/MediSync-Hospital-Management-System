@@ -22,16 +22,6 @@ This file captures all identified issues, technical debt, and improvement opport
 
 ## 5. Code Quality & Maintainability
 
-### 5.3 `row: any` in service transform functions
-- **Files:** `backend/src/routes/doctorRoutes.ts`, `backend/src/services/ImageService.ts`, `backend/src/services/AppointmentService.ts`
-- **Problem:** `function transformRow(row: any)` gives up all type safety on DB result rows.
-- **Fix:** Define interfaces for raw DB row shapes (e.g., `interface AppointmentRow { id: number; patient_id: number; ... }`) and type `row` explicitly.
-
-### 5.4 Duplicate types across frontend and backend
-- **Files:** `backend/src/models/types.ts`, `frontend/src/types/index.ts`
-- **Problem:** Shared domain types (Patient, Appointment, Doctor, etc.) are defined twice and drift independently. A field added to the backend type is not automatically added to the frontend type.
-- **Fix:** Extract to a shared `packages/types` workspace package (if using a monorepo), or generate frontend types from backend OpenAPI spec using `openapi-typescript`.
-
 ### 5.5 Inconsistent casing on route params
 - **Files:** `backend/src/routes/imageRoutes.ts` vs. others
 - **Problem:** Some routes use `patientID`, others use `patientId`. This causes subtle bugs when accessing `req.params`.
@@ -175,11 +165,11 @@ This file captures all identified issues, technical debt, and improvement opport
 | Data Integrity | 0 | — |
 | Input Validation | 0 | — |
 | Performance | 0 | — |
-| Code Quality | 8 | Medium |
+| Code Quality | 6 | Medium |
 | Missing Features / UX | 10 | Medium |
 | Accessibility | 4 | Medium |
 | Configuration / DevOps | 5 | Low–Medium |
-| **Total** | **27** | — |
+| **Total** | **25** | — |
 
 ---
 

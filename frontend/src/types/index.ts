@@ -1,36 +1,16 @@
-// User Models
-export interface User {
-  id: string;
-  name: string;
-  address: string;
-  createdAt: Date;
-}
-
-export interface Allergy {
-  substance: string;
-  reaction: string;
-  severity: 'Mild' | 'Moderate' | 'Severe' | 'Life-threatening';
-}
-
-export interface Patient extends User {
-  conditions: string[];
-  diagnosis: string;
-  totalCost: number;
-  medicalHistory: Task[];
-  // Demographics
-  dateOfBirth?: string;
-  gender?: string;
-  phone?: string;
-  bloodType?: string;
-  email?: string;
-  // Clinical
-  allergies: Allergy[];
-  // Emergency contact
-  emergencyContactName?: string;
-  emergencyContactRelationship?: string;
-  emergencyContactPhone?: string;
-  updatedAt?: string;
-}
+export type {
+  User,
+  Allergy,
+  Patient,
+  Task,
+  CostReport,
+  APIResponse,
+  CreatePatientDTO,
+  UpdatePatientDTO,
+  CreateVitalDTO,
+  CreateStaffDTO,
+  RecordTaskDTO,
+} from '@medisync/shared';
 
 export interface Vital {
   id: string;
@@ -47,7 +27,11 @@ export interface Vital {
   notes?: string;
 }
 
-export interface Staff extends User {
+export interface Staff {
+  id: string;
+  name: string;
+  address: string;
+  createdAt: Date;
   role: 'radiologist' | 'doctor' | 'admin' | 'receptionist';
   specialization: string;
   certifications: string[];
@@ -55,7 +39,6 @@ export interface Staff extends User {
   last_seen?: string;
 }
 
-// Image Models
 export interface MedicalImage {
   id: string;
   patientID: string;
@@ -67,28 +50,17 @@ export interface MedicalImage {
   imageUrl?: string;
 }
 
-// Task & Cost Tracking
-export interface Task {
-  id: string;
+export interface UploadImageDTO {
   patientID: string;
-  description: string;
-  cost: number;
-  timestamp: Date;
+  imageType: 'MRI' | 'CT' | 'Xray' | 'DICOM';
+  diseaseType: string;
+  file: File;
 }
 
-// Financial Models
-export interface CostReport {
-  patientID: string;
-  tasks: Task[];
-  totalCost: number;
-  generatedAt: Date;
-}
-
-// Report Models
 export interface PatientHistory {
-  patient: Patient;
+  patient: import('@medisync/shared').Patient;
   medicalImages: MedicalImage[];
-  financialHistory: Task[];
+  financialHistory: import('@medisync/shared').Task[];
   totalCost: number;
 }
 
@@ -103,79 +75,6 @@ export interface DiagnosticReport {
   generatedBy: string;
 }
 
-// API Request DTOs
-export interface CreatePatientDTO {
-  name: string;
-  address: string;
-  conditions: string[];
-  dateOfBirth?: string;
-  gender?: string;
-  phone?: string;
-  bloodType?: string;
-  allergies?: Allergy[];
-  emergencyContactName?: string;
-  emergencyContactRelationship?: string;
-  emergencyContactPhone?: string;
-}
-
-export interface UpdatePatientDTO {
-  name?: string;
-  address?: string;
-  diagnosis?: string;
-  conditions?: string[];
-  dateOfBirth?: string;
-  gender?: string;
-  phone?: string;
-  bloodType?: string;
-  allergies?: Allergy[];
-  emergencyContactName?: string;
-  emergencyContactRelationship?: string;
-  emergencyContactPhone?: string;
-  updatedAt?: string; // optimistic lock version
-}
-
-export interface CreateVitalDTO {
-  patientId: string;
-  recordedBy: string;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
-  heartRate?: number;
-  temperature?: number;
-  oxygenSaturation?: number;
-  weight?: number;
-  height?: number;
-  notes?: string;
-}
-
-export interface CreateStaffDTO {
-  name: string;
-  address: string;
-  role: 'radiologist' | 'doctor' | 'admin' | 'receptionist';
-  specialization: string;
-}
-
-export interface UploadImageDTO {
-  patientID: string;
-  imageType: 'MRI' | 'CT' | 'Xray' | 'DICOM';
-  diseaseType: string;
-  file: File;
-}
-
-export interface RecordTaskDTO {
-  patientID: string;
-  description: string;
-  cost: number;
-}
-
-// API Response Wrapper
-export interface APIResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  timestamp?: Date;
-}
-
-// Pagination
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -183,7 +82,6 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// Error Response
 export interface ErrorResponse {
   success: false;
   error: string;

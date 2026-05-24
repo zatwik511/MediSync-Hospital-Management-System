@@ -33,20 +33,34 @@ export interface CreateAppointmentDTO {
   reason?: string;
 }
 
+interface AppointmentRow {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  doctor_name: string | null;
+  doctor_specialty: string | null;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  reason: string | null;
+  created_at: string;
+}
+
 export class AppointmentService {
 
-  private transformAppointment(row: any): Appointment {
+  private transformAppointment(row: AppointmentRow): Appointment {
     return {
       id: row.id,
       patientID: row.patient_id,
       doctorID: row.doctor_id,
-      doctorName: row.doctor_name,
-      doctorSpecialty: row.doctor_specialty,
+      doctorName: row.doctor_name ?? undefined,
+      doctorSpecialty: row.doctor_specialty ?? undefined,
       date: row.date,
       time: row.time,
       type: row.type,
       status: row.status,
-      reason: row.reason,
+      reason: row.reason ?? undefined,
       createdAt: new Date(row.created_at),
     };
   }

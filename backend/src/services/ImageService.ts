@@ -4,16 +4,26 @@ import { pool } from '../database/db';
 import { MedicalImage, UploadImageDTO } from '../models/types';
 import { auditService } from './AuditService';
 
+interface MedicalImageRow {
+  id: string;
+  patient_id: string;
+  uploaded_at: string;
+  uploaded_by: string;
+  type: string;
+  disease_classification: string | null;
+  image_url: string;
+}
+
 export class ImageService {
 
-  private transformToMedicalImage(row: any): MedicalImage {
+  private transformToMedicalImage(row: MedicalImageRow): MedicalImage {
     return {
       id: row.id,
       patientID: row.patient_id,
       uploadedAt: new Date(row.uploaded_at),
       uploadedBy: row.uploaded_by,
-      type: row.type,
-      diseaseClassification: row.disease_classification,
+      type: row.type as MedicalImage['type'],
+      diseaseClassification: row.disease_classification ?? '',
       imageUrl: row.image_url,
     };
   }

@@ -27,6 +27,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@medisync/shared": "*",
     "@supabase/supabase-js": "^2.45.4",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
