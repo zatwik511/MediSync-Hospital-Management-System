@@ -111,11 +111,13 @@ app.use('*', (req: Request, res: Response) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  logger.info({ port: PORT }, 'MediSync HMS Backend started');
-  startReminderJob();
-});
-
 export default app;
+
+// Only bind the port when this file is the entry point, not when imported by tests.
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    logger.info({ port: PORT }, 'MediSync HMS Backend started');
+    startReminderJob();
+  });
+}

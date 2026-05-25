@@ -2,29 +2,9 @@ import { pool } from '../database/db';
 import { Patient, CreatePatientDTO, UpdatePatientDTO, Allergy } from '../models/types';
 import { auditService } from './AuditService';
 import { notificationService } from './NotificationService';
-
-const VALID_SEVERITIES = new Set<string>(['Mild', 'Moderate', 'Severe', 'Life-threatening']);
+import { validateConditions, validateAllergies } from './patientValidation';
 
 export class PatientService {
-
-  private validateConditions(conditions: string[]): void {
-    if (!Array.isArray(conditions)) throw new Error('conditions must be an array');
-    for (const c of conditions) {
-      if (typeof c !== 'string' || c.trim() === '') throw new Error('Each condition must be a non-empty string');
-      if (c.length > 255) throw new Error('Each condition must be 255 characters or fewer');
-    }
-  }
-
-  private validateAllergies(allergies: Allergy[]): void {
-    if (!Array.isArray(allergies)) throw new Error('allergies must be an array');
-    for (const a of allergies) {
-      if (typeof a.substance !== 'string' || a.substance.trim() === '') throw new Error('Each allergy must have a non-empty substance');
-      if (a.substance.length > 255) throw new Error('Allergy substance must be 255 characters or fewer');
-      if (typeof a.reaction !== 'string' || a.reaction.trim() === '') throw new Error('Each allergy must have a non-empty reaction');
-      if (a.reaction.length > 500) throw new Error('Allergy reaction must be 500 characters or fewer');
-      if (!VALID_SEVERITIES.has(a.severity)) throw new Error(`Allergy severity must be one of: ${[...VALID_SEVERITIES].join(', ')}`);
-    }
-  }
 
   async createPatient(data: CreatePatientDTO, staffId = ''): Promise<Patient> {
     const {
@@ -33,8 +13,8 @@ export class PatientService {
       emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
     } = data;
 
-    this.validateConditions(conditions || []);
-    this.validateAllergies(allergies || []);
+    validateConditions(conditions || []);
+    validateAllergies(allergies || []);
 
     const result = await pool.query(
       `INSERT INTO patients (
@@ -70,8 +50,8 @@ export class PatientService {
   }
 
   async updatePatient(patientID: string, data: UpdatePatientDTO, staffId = ''): Promise<Patient> {
-    if (data.conditions !== undefined) this.validateConditions(data.conditions);
-    if (data.allergies !== undefined)  this.validateAllergies(data.allergies);
+    if (data.conditions !== undefined) validateConditions(data.conditions);
+    if (data.allergies !== undefined)  validateAllergies(data.allergies);
 
     const updates: string[] = [];
     const values: any[] = [];

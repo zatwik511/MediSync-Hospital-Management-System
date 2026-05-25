@@ -59,14 +59,14 @@ export interface AvailableSlotsResult {
 }
 
 // Valid outgoing transitions per status. Terminal states have empty arrays.
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   Pending:   ['Confirmed', 'Cancelled'],
   Confirmed: ['Completed', 'Cancelled'],
   Completed: [],
   Cancelled: [],
 };
 
-function assertTransition(current: string, next: string): void {
+export function assertTransition(current: string, next: string): void {
   const allowed = ALLOWED_TRANSITIONS[current] ?? [];
   if (!allowed.includes(next)) {
     throw new Error(
@@ -81,12 +81,12 @@ const DEFAULT_SLOTS = [
   '11:30', '14:00', '14:30', '15:00', '15:30', '16:00',
 ];
 
-function parseLocalDayOfWeek(date: string): number {
+export function parseLocalDayOfWeek(date: string): number {
   const [y, m, d] = date.split('-').map(Number);
   return new Date(y, m - 1, d).getDay();
 }
 
-function generateSlots(startTime: string, endTime: string): string[] {
+export function generateSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
   const [sh, sm] = startTime.split(':').map(Number);
   const [eh, em] = endTime.split(':').map(Number);

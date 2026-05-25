@@ -1,6 +1,6 @@
 type CsvValue = string | number | null | undefined;
 
-function escapeCsv(val: CsvValue): string {
+export function escapeCsv(val: CsvValue): string {
   const str = String(val ?? '');
   return str.includes(',') || str.includes('"') || str.includes('\n')
     ? `"${str.replace(/"/g, '""')}"`
