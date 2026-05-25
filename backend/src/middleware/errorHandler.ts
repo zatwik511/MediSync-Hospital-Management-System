@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import logger from '../logger';
 
 export const errorHandler = (
   err: unknown,
@@ -22,10 +23,12 @@ export const errorHandler = (
     status = 409;
   }
 
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`, {
-    message,
-    stack: err instanceof Error ? err.stack : undefined,
-  });
+  logger.error({
+    method: req.method,
+    url: req.originalUrl,
+    status,
+    err: err instanceof Error ? { message: err.message, stack: err.stack } : { message },
+  }, 'Request error');
 
   res.status(status).json({ success: false, error: message });
 };

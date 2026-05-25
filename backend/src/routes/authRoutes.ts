@@ -3,8 +3,9 @@ import { staffService } from '../services/StaffService';
 import { auditService } from '../services/AuditService';
 import { authMiddleware, signToken } from '../middleware/authMiddleware';
 import { AccountLockedError } from '../services/PatientAuthService';
+import logger from '../logger';
 
-staffService.ensureColumns().catch(console.error);
+staffService.ensureColumns().catch(err => logger.error({ err }, 'authRoutes: ensureColumns failed'));
 
 const router = Router();
 

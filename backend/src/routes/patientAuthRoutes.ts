@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { patientAuthService, AccountLockedError } from '../services/PatientAuthService';
+import logger from '../logger';
 
 const router = Router();
 
-patientAuthService.ensureColumns().catch(console.error);
+patientAuthService.ensureColumns().catch(err => logger.error({ err }, 'patientAuthRoutes: ensureColumns failed'));
 
 // POST /api/patient-auth/register
 router.post('/register', asyncHandler(async (req, res) => {

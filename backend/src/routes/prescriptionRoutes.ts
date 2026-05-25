@@ -2,11 +2,11 @@ import { Router } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { prescriptionService } from '../services/PrescriptionService';
 import { requireRole } from '../middleware/authMiddleware';
+import logger from '../logger';
 
 const router = Router();
 
-// Bootstrap table on module load
-prescriptionService.ensureTable().catch(console.error);
+prescriptionService.ensureTable().catch(err => logger.error({ err }, 'prescriptionRoutes: ensureTable failed'));
 
 // GET /api/prescriptions/patient/:patientId — all roles
 router.get('/patient/:patientId', asyncHandler(async (req, res) => {

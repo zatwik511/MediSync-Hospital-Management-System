@@ -1,4 +1,5 @@
 import { pool } from '../database/db';
+import logger from '../logger';
 
 export type AuditAction = 'LOGIN' | 'LOGOUT' | 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'EXPORT';
 
@@ -54,7 +55,7 @@ class AuditService {
         ]
       );
     } catch (err) {
-      console.error('[AuditService] Failed to write log:', err);
+      logger.error({ err }, 'AuditService: failed to write log');
     }
   }
 

@@ -1,4 +1,5 @@
 import { pool } from '../database/db';
+import logger from '../logger';
 
 export type NotificationType = 'info' | 'success' | 'warning';
 
@@ -34,7 +35,7 @@ class NotificationService {
         ]
       );
     } catch (err) {
-      console.error('[NotificationService] Failed to create notification:', err);
+      logger.error({ err }, 'NotificationService: failed to create notification');
     }
   }
 
@@ -57,7 +58,7 @@ class NotificationService {
         await this.createNotification({ staffId: row.id, message, type, entityType, entityId });
       }
     } catch (err) {
-      console.error('[NotificationService] Failed to notify doctor:', err);
+      logger.error({ err }, 'NotificationService: failed to notify doctor');
     }
   }
 
@@ -73,7 +74,7 @@ class NotificationService {
         await this.createNotification({ staffId: row.id, message, type, entityType, entityId });
       }
     } catch (err) {
-      console.error('[NotificationService] Failed to notify admins:', err);
+      logger.error({ err }, 'NotificationService: failed to notify admins');
     }
   }
 

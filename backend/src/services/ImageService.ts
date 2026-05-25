@@ -3,6 +3,7 @@ import path from 'path';
 import { pool } from '../database/db';
 import { MedicalImage, UploadImageDTO } from '../models/types';
 import { auditService } from './AuditService';
+import logger from '../logger';
 
 interface MedicalImageRow {
   id: string;
@@ -101,7 +102,7 @@ export class ImageService {
         await fs.promises.unlink(absolutePath);
       } catch (err: unknown) {
         if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-          console.error(`Could not delete file ${absolutePath}:`, err instanceof Error ? err.message : String(err));
+          logger.error({ path: absolutePath, err }, 'ImageService: could not delete file');
           throw new Error('Failed to delete image file; database record was not removed');
         }
         // ENOENT: file already gone — safe to proceed

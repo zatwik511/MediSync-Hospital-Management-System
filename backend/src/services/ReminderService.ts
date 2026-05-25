@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { pool } from '../database/db';
 import { auditService } from './AuditService';
+import logger from '../logger';
 
 interface AppointmentReminder {
   appointmentId: string;
@@ -95,13 +96,13 @@ class ReminderService {
   async sendReminders(): Promise<{ sent: number; failed: number; skipped: boolean }> {
     const transport = this.getTransporter();
     if (!transport) {
-      console.log('[ReminderService] SMTP not configured — skipping appointment reminders');
+      logger.warn('ReminderService: SMTP not configured — skipping appointment reminders');
       return { sent: 0, failed: 0, skipped: true };
     }
 
     const reminders = await this.getDueTomorrow();
     if (reminders.length === 0) {
-      console.log('[ReminderService] No appointment reminders to send today');
+      logger.info('ReminderService: no appointment reminders to send today');
       return { sent: 0, failed: 0, skipped: false };
     }
 
@@ -120,7 +121,7 @@ class ReminderService {
         });
         sent++;
       } catch (err) {
-        console.error(`[ReminderService] Failed to email ${reminder.patientEmail}:`, err);
+        logger.error({ email: reminder.patientEmail, err }, 'ReminderService: failed to send reminder email');
         failed++;
       }
     }
@@ -132,7 +133,7 @@ class ReminderService {
       description: `Daily appointment reminders: ${sent} sent, ${failed} failed`,
     });
 
-    console.log(`[ReminderService] Reminders: ${sent} sent, ${failed} failed`);
+    logger.info({ sent, failed }, 'ReminderService: daily reminders complete');
     return { sent, failed, skipped: false };
   }
 }

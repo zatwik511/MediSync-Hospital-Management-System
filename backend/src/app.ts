@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import logger from './logger';
 
 // Routes
 import patientRoutes from './routes/patientRoutes';
@@ -113,11 +114,7 @@ app.use('*', (req: Request, res: Response) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 MediSync HMS Backend running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔑 Auth Service: http://localhost:${PORT}/api/auth/login`);
-  console.log(`🖼️  Image uploads accessible at: http://localhost:${PORT}/uploads`);
-  console.log(`📅 Appointments: http://localhost:${PORT}/api/appointments`);
+  logger.info({ port: PORT }, 'MediSync HMS Backend started');
   startReminderJob();
 });
 
