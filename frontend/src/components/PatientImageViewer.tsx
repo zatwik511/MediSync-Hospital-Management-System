@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { usePatientImages, useDeleteImage } from '../hooks/useImages';
+import { usePatientImages, useDeleteImage, useUpdateImageNote } from '../hooks/useImages';
 import type { MedicalImage } from '../types';
-import { Trash2, Eye, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Eye, Image as ImageIcon, Pencil, X, Check, MessageSquare } from 'lucide-react';
 import { DicomViewerModal } from './DicomViewerModal';
 import { ImageLightbox } from './ImageLightbox';
 import { config } from '../config';
@@ -24,9 +24,28 @@ export function PatientImageViewer({ patientId }: PatientImageViewerProps) {
   const [activeIndex, setActiveIndex]             = useState(0);
   const [dicomViewerOpen, setDicomViewerOpen]     = useState(false);
   const [selectedDicom, setSelectedDicom]         = useState<MedicalImage | null>(null);
+  const [editingNoteId, setEditingNoteId]         = useState<string | null>(null);
+  const [noteText, setNoteText]                   = useState('');
 
   const { data: images, isLoading, error } = usePatientImages(patientId);
-  const deleteImage = useDeleteImage();
+  const deleteImage   = useDeleteImage();
+  const updateNote    = useUpdateImageNote();
+
+  const startEditNote = (image: MedicalImage) => {
+    setEditingNoteId(image.id);
+    setNoteText(image.notes ?? '');
+  };
+
+  const cancelEditNote = () => {
+    setEditingNoteId(null);
+    setNoteText('');
+  };
+
+  const saveNote = async (imageId: string) => {
+    await updateNote.mutateAsync({ imageId, note: noteText });
+    setEditingNoteId(null);
+    setNoteText('');
+  };
 
   const handleView = (index: number) => {
     const image = images?.[index];
@@ -183,6 +202,57 @@ export function PatientImageViewer({ patientId }: PatientImageViewerProps) {
                     <span className="text-gray-400 font-normal italic">No classification</span>
                   )}
                 </p>
+
+                {/* Notes section */}
+                <div className="mb-2">
+                  {editingNoteId === image.id ? (
+                    <div className="space-y-1.5">
+                      <textarea
+                        className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                        rows={3}
+                        maxLength={1000}
+                        placeholder="Add a clinical note…"
+                        value={noteText}
+                        onChange={e => setNoteText(e.target.value)}
+                      />
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => saveNote(image.id)}
+                          disabled={updateNote.isPending}
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-medium transition-colors"
+                        >
+                          <Check size={11} /> Save
+                        </button>
+                        <button
+                          onClick={cancelEditNote}
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <X size={11} /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group/note flex items-start gap-1.5">
+                      {image.notes ? (
+                        <div className="flex-1 text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                          {image.notes}
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center gap-1 text-xs text-gray-300 italic">
+                          <MessageSquare size={11} /> No note
+                        </div>
+                      )}
+                      <button
+                        onClick={() => startEditNote(image)}
+                        className="shrink-0 p-1 text-gray-300 hover:text-emerald-600 transition-colors"
+                        title="Edit note"
+                        aria-label="Edit clinical note"
+                      >
+                        <Pencil size={11} />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Date / uploader */}
                 <div className="space-y-0.5 mb-3">

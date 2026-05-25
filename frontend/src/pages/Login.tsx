@@ -21,7 +21,8 @@ export function Login() {
         pin,
       });
       if (response.data.success) {
-        const { name, role, staff_code, last_login } = response.data.data;
+        const { id, name, role, staff_code, last_login } = response.data.data;
+        localStorage.setItem('staffId', id);
         localStorage.setItem('staffName', name);
         localStorage.setItem('staffRole', role);
         localStorage.setItem('staffCode', staff_code);

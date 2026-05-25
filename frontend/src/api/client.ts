@@ -2,6 +2,9 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError } from 'axios';
 import type { APIResponse } from '../types';
 
+if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+  throw new Error('[MediSync] VITE_API_URL is not set. The app cannot start in production without an explicit API URL.');
+}
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000');
 
@@ -20,6 +23,7 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     const url = error.config?.url ?? '';
     if (error.response?.status === 401 && !url.includes('patient-auth')) {
+      localStorage.removeItem('staffId');
       localStorage.removeItem('staffName');
       localStorage.removeItem('staffRole');
       localStorage.removeItem('staffCode');

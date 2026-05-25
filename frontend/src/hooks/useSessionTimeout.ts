@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 
 const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-const CHECK_INTERVAL_MS = 60 * 1000; // check every minute
+const CHECK_INTERVAL_MS = 20 * 1000; // check every 20 seconds
 export const LAST_ACTIVITY_KEY = 'lastActivity';
 
 const ALL_STORAGE_KEYS = ['staffId', 'staffName', 'staffRole', 'staffCode', 'lastLogin', LAST_ACTIVITY_KEY];

@@ -33,13 +33,29 @@ export class PatientAuthService {
     }
 
     const existing = await pool.query(
-      `SELECT id FROM patients WHERE email = $1`,
+      `SELECT id, name, pin FROM patients WHERE email = $1 AND deleted_at IS NULL`,
       [email.toLowerCase()]
     );
+
     if (existing.rows[0]) {
-      throw new Error('An account with this email already exists');
+      const row = existing.rows[0];
+      if (row.pin) {
+        // Account already claimed — direct them to sign in
+        throw new Error('This email is already registered. Please sign in instead.');
+      }
+      // Staff created this record with an email but no PIN yet — let the patient claim it
+      const pinHash = await bcrypt.hash(pin, 10);
+      const result = await pool.query(
+        `UPDATE patients SET pin = $1, failed_pin_attempts = 0, locked_until = NULL WHERE id = $2 RETURNING id, name, email`,
+        [pinHash, row.id]
+      );
+      return result.rows[0] as PatientAuthResult;
     }
 
+    // No existing record — create a new self-registered patient
+    if (!name) {
+      throw new Error('Full name is required when registering as a new patient');
+    }
     const pinHash = await bcrypt.hash(pin, 10);
     const result = await pool.query(
       `INSERT INTO patients (name, address, conditions, diagnosis, "totalCost", "medicalHistory", "createdAt", email, pin)

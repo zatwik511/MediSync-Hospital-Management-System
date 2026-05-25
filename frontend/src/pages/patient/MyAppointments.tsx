@@ -36,7 +36,7 @@ export function MyAppointments() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Appointments</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            {upcoming.length} upcoming Â· {past.length} past
+            {upcoming.length} upcoming · {past.length} past
           </p>
         </div>
         <button

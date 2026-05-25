@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, ZoomIn, ZoomOut, RotateCw, Maximize2, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import * as cornerstone from 'cornerstone-core';
 import { config } from '../config';
 import { initCornerstone } from '../lib/cornerstone';
@@ -18,8 +19,10 @@ interface DicomViewerModalProps {
 
 export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: DicomViewerModalProps) {
   const viewerRef = useRef<HTMLDivElement>(null);
+  const modalRef  = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  useFocusTrap(modalRef, isOpen);
 
   const isPanning = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
@@ -157,7 +160,13 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
       style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="flex flex-col w-full max-w-5xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-gray-900">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dicom-modal-title"
+        className="flex flex-col w-full max-w-5xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-gray-900"
+      >
 
         {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-gray-900 border-b border-white/10 shrink-0">
@@ -166,11 +175,11 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
               <ImageIcon size={17} className="text-blue-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white leading-tight">DICOM Viewer</p>
+              <p id="dicom-modal-title" className="text-sm font-semibold text-white leading-tight">DICOM Viewer</p>
               <p className="text-xs mt-0.5 truncate">
                 <span className="text-blue-400 font-medium">{imageInfo.type}</span>
                 {imageInfo.disease && (
-                  <span className="text-gray-500"> Â· {imageInfo.disease}</span>
+                  <span className="text-gray-500"> · {imageInfo.disease}</span>
                 )}
               </p>
             </div>
@@ -179,6 +188,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
             onClick={onClose}
             className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors shrink-0 ml-4"
             title="Close (Esc)"
+            aria-label="Close"
           >
             <X size={17} />
           </button>
@@ -248,13 +258,13 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
           <div className="flex flex-col items-center gap-0.5">
             <p className={groupLabel}>Transform</p>
             <div className="flex gap-0.5">
-              <button onClick={handleRotate} className={toolBtn} title="Rotate 90Â°"><RotateCw size={14} /></button>
+              <button onClick={handleRotate} className={toolBtn} title="Rotate 90°"><RotateCw size={14} /></button>
               <button onClick={handleReset}  className={toolBtn} title="Reset view"><Maximize2 size={14} /></button>
             </div>
           </div>
 
           <p className="text-[11px] text-gray-700 ml-auto self-end pb-0.5 hidden lg:block select-none">
-            Drag to pan Â· Esc to close
+            Drag to pan · Esc to close
           </p>
         </div>
 
@@ -273,7 +283,7 @@ export function DicomViewerModal({ isOpen, onClose, imageUrl, imageInfo }: Dicom
           {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
               <div className="w-11 h-11 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin mb-4" />
-              <p className="text-gray-400 text-sm tracking-wide">Loading DICOM imageâ€¦</p>
+              <p className="text-gray-400 text-sm tracking-wide">Loading DICOM image…</p>
             </div>
           )}
 

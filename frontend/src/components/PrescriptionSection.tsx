@@ -246,7 +246,7 @@ export function PrescriptionSection({ patientId }: Props) {
               disabled={createPrescription.isPending}
               className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
-              {createPrescription.isPending ? 'Savingâ€¦' : 'Save Prescription'}
+              {createPrescription.isPending ? 'Saving…' : 'Save Prescription'}
             </button>
             <button
               onClick={resetForm}
@@ -293,7 +293,7 @@ export function PrescriptionSection({ patientId }: Props) {
                       <p className="text-sm font-semibold text-gray-800">
                         {rx.medications.length} medication{rx.medications.length !== 1 ? 's' : ''}
                         {rx.prescribedByName && (
-                          <span className="font-normal text-gray-500"> Â· {rx.prescribedByName}</span>
+                          <span className="font-normal text-gray-500"> · {rx.prescribedByName}</span>
                         )}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">

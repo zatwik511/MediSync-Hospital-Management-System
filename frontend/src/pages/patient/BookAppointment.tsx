@@ -65,7 +65,7 @@ export function BookAppointment() {
               >
                 <option value="">Select a doctor</option>
                 {doctors?.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} â€” {d.specialty}</option>
+                  <option key={d.id} value={d.id}>{d.name} — {d.specialty}</option>
                 ))}
               </select>
             </div>
@@ -159,7 +159,7 @@ export function BookAppointment() {
                 disabled={createAppointment.isPending || !time}
                 className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
               >
-                {createAppointment.isPending ? 'Bookingâ€¦' : 'Confirm Booking'}
+                {createAppointment.isPending ? 'Booking…' : 'Confirm Booking'}
               </button>
               <button
                 type="button"

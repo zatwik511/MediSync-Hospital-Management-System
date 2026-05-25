@@ -48,6 +48,7 @@ export interface MedicalImage {
   type: 'MRI' | 'CT' | 'Xray';
   diseaseClassification: string;
   imageUrl?: string;
+  notes?: string;
 }
 
 export interface UploadImageDTO {

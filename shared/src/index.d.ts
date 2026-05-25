@@ -58,6 +58,7 @@ export interface CreatePatientDTO {
   gender?: string;
   phone?: string;
   bloodType?: string;
+  email?: string;
   allergies?: Allergy[];
   emergencyContactName?: string;
   emergencyContactRelationship?: string;
@@ -73,6 +74,7 @@ export interface UpdatePatientDTO {
   gender?: string;
   phone?: string;
   bloodType?: string;
+  email?: string;
   allergies?: Allergy[];
   emergencyContactName?: string;
   emergencyContactRelationship?: string;

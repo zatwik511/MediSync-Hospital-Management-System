@@ -11,9 +11,10 @@ import { PrescriptionSection } from '../components/PrescriptionSection';
 import { DiagnosticReports } from '../components/DiagnosticReports';
 import {
   ArrowLeft, Pencil, Check, X, PlusCircle, FileDown,
-  Plus, Trash2, Activity,
+  Plus, Trash2, Activity, Loader2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { Allergy, UpdatePatientDTO } from '../types';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ const EDIT_MODAL_EMPTY = (p: any): UpdatePatientDTO => ({
   dateOfBirth:                 p?.dateOfBirth ? p.dateOfBirth.split('T')[0] : '',
   gender:                      p?.gender || '',
   bloodType:                   p?.bloodType || '',
+  email:                       p?.email || '',
   emergencyContactName:        p?.emergencyContactName || '',
   emergencyContactRelationship:p?.emergencyContactRelationship || '',
   emergencyContactPhone:       p?.emergencyContactPhone || '',
@@ -85,7 +87,9 @@ export function PatientDetails() {
   const [taskSubmitted, setTaskSubmitted]   = useState(false);
 
   // edit profile modal
+  const editModalRef = useRef<HTMLDivElement>(null);
   const [showEditModal, setShowEditModal]   = useState(false);
+  useFocusTrap(editModalRef, showEditModal);
   const [editForm, setEditForm]             = useState<UpdatePatientDTO>({});
   const [editError, setEditError]           = useState('');
   const [editSaving, setEditSaving]         = useState(false);
@@ -244,13 +248,13 @@ export function PatientDetails() {
                   autoFocus
                   className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                <button onClick={handleSaveDiagnosis} disabled={updateDiagnosis.isPending} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"><Check className="w-4 h-4" /></button>
-                <button onClick={() => setIsEditingDiagnosis(false)} className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"><X className="w-4 h-4" /></button>
+                <button onClick={handleSaveDiagnosis} disabled={updateDiagnosis.isPending} aria-label="Save diagnosis" className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"><Check className="w-4 h-4" /></button>
+                <button onClick={() => setIsEditingDiagnosis(false)} aria-label="Cancel edit" className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"><X className="w-4 h-4" /></button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <p className="text-gray-900 text-sm">{patient.diagnosis || <span className="text-gray-400 italic">Not set</span>}</p>
-                <button onClick={handleEditClick} className="p-1 text-gray-400 hover:text-emerald-600"><Pencil className="w-3.5 h-3.5" /></button>
+                <button onClick={handleEditClick} aria-label="Edit diagnosis" className="p-1 text-gray-400 hover:text-emerald-600"><Pencil className="w-3.5 h-3.5" /></button>
               </div>
             )}
           </div>
@@ -479,10 +483,16 @@ export function PatientDetails() {
       {/* ══ EDIT PROFILE MODAL ═══════════════════════════════════════════════ */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl my-auto">
+          <div
+            ref={editModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-profile-title"
+            className="bg-white rounded-xl shadow-xl w-full max-w-2xl my-auto"
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Edit Patient Profile</h2>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <h2 id="edit-profile-title" className="text-lg font-semibold text-gray-900">Edit Patient Profile</h2>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-5 space-y-5 max-h-[80vh] overflow-y-auto">
               {editError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{editError}</p>}
@@ -513,6 +523,9 @@ export function PatientDetails() {
                       {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt => <option key={bt}>{bt}</option>)}
                     </select>
                   </FormField>
+                  <FormField label="Email">
+                    <input type="email" value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} className="input-field" placeholder="patient@example.com" autoComplete="email" />
+                  </FormField>
                 </div>
               </Section>
 
@@ -532,7 +545,8 @@ export function PatientDetails() {
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button onClick={() => setShowEditModal(false)} className="btn-secondary">Cancel</button>
-              <button onClick={handleSaveProfile} disabled={editSaving} className="btn-primary disabled:opacity-50">
+              <button onClick={handleSaveProfile} disabled={editSaving} className="btn-primary flex items-center gap-1.5 disabled:opacity-50">
+                {editSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {editSaving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>

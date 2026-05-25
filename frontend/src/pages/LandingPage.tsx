@@ -69,7 +69,7 @@ export function LandingPage() {
         </button>
       </div>
 
-      <p className="mt-10 text-zinc-700 text-xs">Â© 2025 MediSync Hospital Management System</p>
+      <p className="mt-10 text-zinc-700 text-xs">© 2025 MediSync Hospital Management System</p>
     </div>
   );
 }

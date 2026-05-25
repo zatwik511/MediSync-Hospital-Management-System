@@ -48,6 +48,7 @@ export interface MedicalImage {
   diseaseClassification: string;
   filePath: string;
   imageUrl?: string;
+  notes?: string;
 }
 
 export interface UploadImageDTO {

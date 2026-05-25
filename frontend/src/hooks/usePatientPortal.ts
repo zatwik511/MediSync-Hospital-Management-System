@@ -93,6 +93,28 @@ export function usePatientCreateAppointment() {
   });
 }
 
+export function useUpdatePatientProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      phone?: string;
+      address?: string;
+      gender?: string;
+      emergencyContactName?: string;
+      emergencyContactRelationship?: string;
+      emergencyContactPhone?: string;
+      allergies?: Array<{ substance: string; reaction: string; severity: string }>;
+    }): Promise<Patient> => {
+      const res = await patientClient.put<APIResponse<Patient>>('/patient/data/profile', data);
+      if (!res.data.success) throw new Error(res.data.error || 'Failed to update profile');
+      return res.data.data!;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient-profile'] });
+    },
+  });
+}
+
 export function usePatientCancelAppointment() {
   const queryClient = useQueryClient();
   return useMutation({

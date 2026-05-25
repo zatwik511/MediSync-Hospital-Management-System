@@ -81,7 +81,7 @@ export function PatientDashboard() {
             <SummaryCard
               icon={<DollarSign className="w-5 h-5 text-emerald-600" />}
               label="Total Cost"
-              value={`Â£${Number(financial?.totalCost ?? 0).toFixed(2)}`}
+              value={`£${Number(financial?.totalCost ?? 0).toFixed(2)}`}
               sub={financial && financial.tasks.length > 0 ? `${financial.tasks.length} charge${financial.tasks.length !== 1 ? 's' : ''}` : 'No charges recorded'}
               colour="bg-emerald-50"
               to="/patient/records"

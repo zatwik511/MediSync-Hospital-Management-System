@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useStaff, useCreateStaff, useDeleteStaff, useResetPin } from '../hooks/useStaff';
 import { useAuth } from '../hooks/useAuth';
 import { SkeletonPersonCard } from '../components/Skeleton';
 import { formatRelativeTime } from '../utils/time';
-import { Trash2, Key } from 'lucide-react';
+import { Trash2, Key, Loader2 } from 'lucide-react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 type StaffRole = 'doctor' | 'receptionist' | 'radiologist' | 'admin' | 'nurse' | 'pharmacist' | 'physiotherapist' | 'lab_technician' | 'security' | 'porter';
 
@@ -51,10 +52,12 @@ export function StaffManagement() {
   const [formErrors, setFormErrors]     = useState({ name: '', role: '' });
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  const resetModalRef = useRef<HTMLDivElement>(null);
   const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
   const [newPin, setNewPin]           = useState('');
   const [resetError, setResetError]   = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
+  useFocusTrap(resetModalRef, !!resetTarget);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,6 +220,7 @@ export function StaffManagement() {
                           <button
                             onClick={() => openResetDialog(member.id, member.name)}
                             title="Reset PIN"
+                            aria-label="Reset PIN"
                             className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
                           >
                             <Key size={15} />
@@ -226,7 +230,8 @@ export function StaffManagement() {
                           onClick={() => deleteStaff.mutate(member.id)}
                           disabled={deleteStaff.isPending}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                          title="Delete"
+                          title="Delete staff member"
+                          aria-label="Delete staff member"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -245,8 +250,14 @@ export function StaffManagement() {
       {/* Reset PIN Modal */}
       {resetTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
-            <h3 className="text-lg font-semibold mb-1">Reset PIN</h3>
+          <div
+            ref={resetModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-pin-title"
+            className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl"
+          >
+            <h3 id="reset-pin-title" className="text-lg font-semibold mb-1">Reset PIN</h3>
             <p className="text-sm text-gray-500 mb-4">{resetTarget.name}</p>
             {resetSuccess ? (
               <p className="text-green-600 text-sm font-medium text-center py-2">PIN reset successfully!</p>
@@ -265,7 +276,8 @@ export function StaffManagement() {
                 />
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => setResetTarget(null)} className="btn-secondary text-sm">Cancel</button>
-                  <button onClick={handleResetPin} disabled={resetPin.isPending} className="btn-primary text-sm disabled:opacity-50">
+                  <button onClick={handleResetPin} disabled={resetPin.isPending} className="btn-primary text-sm flex items-center gap-1.5 disabled:opacity-50">
+                    {resetPin.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {resetPin.isPending ? 'Resetting…' : 'Reset PIN'}
                   </button>
                 </div>

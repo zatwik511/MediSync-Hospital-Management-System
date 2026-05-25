@@ -7,14 +7,22 @@ const router = express.Router();
 
 // POST /api/patients — admin, receptionist
 router.post('/', requireRole('admin', 'receptionist'), asyncHandler(async (req, res) => {
-    const { name, address, conditions } = req.body;
+    const {
+      name, address, conditions,
+      phone, dateOfBirth, gender, bloodType, email,
+      allergies, emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
+    } = req.body;
     if (!name || !address) {
       return res.status(400).json({ success: false, error: 'Name and address are required' });
     }
     if (name.length > 255)    return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
     if (address.length > 500) return res.status(400).json({ success: false, error: 'Address must be 500 characters or fewer' });
     const patient = await patientService.createPatient(
-      { name, address, conditions: conditions || [] },
+      {
+        name, address, conditions: conditions || [],
+        phone, dateOfBirth, gender, bloodType, email,
+        allergies, emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
+      },
       req.staffID
     );
     res.status(201).json({ success: true, data: patient });

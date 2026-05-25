@@ -108,6 +108,15 @@ router.put('/:id/classify', requireRole('admin', 'doctor', 'radiologist'), async
     res.json({ success: true, data: image });
 }));
 
+// PUT /api/images/:id/note — admin, doctor, radiologist
+router.put('/:id/note', requireRole('admin', 'doctor', 'radiologist'), asyncHandler(async (req, res) => {
+    const { note } = req.body;
+    if (typeof note !== 'string') return res.status(400).json({ success: false, error: 'note must be a string' });
+    if (note.length > 1000) return res.status(400).json({ success: false, error: 'note must be 1000 characters or fewer' });
+    const image = await imageService.updateNote(req.params.id, note.trim(), req.staffID);
+    res.json({ success: true, data: image });
+}));
+
 // DELETE /api/images/:id — admin, radiologist
 router.delete('/:id', requireRole('admin', 'radiologist'), asyncHandler(async (req, res) => {
     await imageService.deleteImage(req.params.id, req.staffID);

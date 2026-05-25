@@ -62,7 +62,16 @@ export const imageApi = {
     }
   },
 
-  // NEW: Get total image count across all patients
+  async updateNote(imageId: string, note: string): Promise<MedicalImage> {
+    const response = await apiClient.put<APIResponse<MedicalImage>>(
+      `/images/${imageId}/note`,
+      { note }
+    );
+    if (!response.data.success) throw new Error(response.data.error || 'Failed to update note');
+    return response.data.data!;
+  },
+
+  // Get total image count across all patients
   async getTotalImageCount(): Promise<number> {
     const response = await apiClient.get<APIResponse<number>>('/images/count');
     if (!response.data.success) {

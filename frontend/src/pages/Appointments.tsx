@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { usePatients } from '../hooks/usePatients';
 import {
   usePaginatedAppointments,
@@ -15,7 +16,7 @@ import { Pagination } from '../components/Pagination';
 import {
   Calendar, Clock, User, Plus, X, RefreshCw, Search, Download,
   TrendingUp, BarChart2, MessageSquare, ArrowUpRight, ArrowDownRight, Minus,
-  CheckCircle, XCircle, Users,
+  CheckCircle, XCircle, Users, Loader2,
 } from 'lucide-react';
 import type { Appointment } from '../types/appointments';
 import { downloadCsv } from '../utils/exportCsv';
@@ -66,7 +67,7 @@ export function Appointments() {
   const counts = result?.counts ?? { active: 0, confirmed: 0, cancelled: 0 };
 
   const { data: doctors } = useDoctors();
-  // Patients still fetched in full â€" used for the book modal dropdown and name lookup
+  // Patients still fetched in full — used for the book modal dropdown and name lookup
   const { data: patients } = usePatients();
   const createAppointment = useCreateAppointment();
   const rescheduleAppointment = useRescheduleAppointment();
@@ -88,12 +89,18 @@ export function Appointments() {
   const [bookApiError, setBookApiError] = useState('');
   const [bookSubmitted, setBookSubmitted] = useState(false);
 
+  const bookModalRef       = useRef<HTMLDivElement>(null);
+  const rescheduleModalRef = useRef<HTMLDivElement>(null);
+
   // Reschedule modal state
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleID, setRescheduleID] = useState('');
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleError, setRescheduleError] = useState('');
+
+  useFocusTrap(bookModalRef, showBookModal);
+  useFocusTrap(rescheduleModalRef, showRescheduleModal);
 
   // Fetch available slots for selected doctor/date
   const { data: bookSlotsData } = useBookedSlots(bookDoctorID, bookDate);
@@ -394,6 +401,7 @@ export function Appointments() {
                                   disabled={completeAppointment.isPending}
                                   className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 disabled:opacity-50"
                                   title="Mark Complete"
+                                  aria-label="Mark appointment complete"
                                 >
                                   <CheckCircle className="w-3.5 h-3.5" />
                                 </button>
@@ -402,6 +410,7 @@ export function Appointments() {
                                 onClick={() => openReschedule(appointment)}
                                 className="p-1.5 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200"
                                 title="Reschedule"
+                                aria-label="Reschedule appointment"
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
                               </button>
@@ -410,6 +419,7 @@ export function Appointments() {
                                 disabled={cancelAppointment.isPending}
                                 className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50"
                                 title="Cancel"
+                                aria-label="Cancel appointment"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -702,10 +712,16 @@ export function Appointments() {
       {/* Book Appointment Modal */}
       {showBookModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto shadow-2xl">
+          <div
+            ref={bookModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="book-modal-title"
+            className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">Book Appointment</h2>
-              <button onClick={() => setShowBookModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 id="book-modal-title" className="text-lg font-bold text-gray-900">Book Appointment</h2>
+              <button onClick={() => setShowBookModal(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -819,9 +835,10 @@ export function Appointments() {
                 <button
                   onClick={handleBook}
                   disabled={createAppointment.isPending}
-                  className="flex-1 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
                 >
-                  {createAppointment.isPending ? 'Booking...' : 'Confirm Booking'}
+                  {createAppointment.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {createAppointment.isPending ? 'Booking…' : 'Confirm Booking'}
                 </button>
                 <button
                   onClick={() => setShowBookModal(false)}
@@ -838,10 +855,16 @@ export function Appointments() {
       {/* Reschedule Modal */}
       {showRescheduleModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+          <div
+            ref={rescheduleModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reschedule-modal-title"
+            className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl"
+          >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">Reschedule Appointment</h2>
-              <button onClick={() => setShowRescheduleModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 id="reschedule-modal-title" className="text-lg font-bold text-gray-900">Reschedule Appointment</h2>
+              <button onClick={() => setShowRescheduleModal(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -891,9 +914,10 @@ export function Appointments() {
                 <button
                   onClick={handleReschedule}
                   disabled={rescheduleAppointment.isPending}
-                  className="flex-1 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
                 >
-                  {rescheduleAppointment.isPending ? 'Saving...' : 'Confirm Reschedule'}
+                  {rescheduleAppointment.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {rescheduleAppointment.isPending ? 'Saving…' : 'Confirm Reschedule'}
                 </button>
                 <button
                   onClick={() => setShowRescheduleModal(false)}

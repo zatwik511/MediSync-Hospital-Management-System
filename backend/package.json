@@ -12,6 +12,9 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "type-check": "tsc --noEmit",
+    "migrate": "tsx src/database/migrate.ts",
+    "migrate:status": "tsx src/database/migrate.ts --status",
+    "seed": "tsx src/scripts/seed.ts",
     "clean": "rm -rf dist node_modules/.cache"
   },
   "keywords": [

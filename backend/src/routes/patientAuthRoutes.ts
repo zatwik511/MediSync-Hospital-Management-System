@@ -11,11 +11,11 @@ patientAuthService.ensureColumns().catch(err => logger.error({ err }, 'patientAu
 router.post('/register', asyncHandler(async (req, res) => {
   const { name, email, pin } = req.body;
 
-  if (!name || !email || !pin) {
-    return res.status(400).json({ success: false, error: 'Name, email, and PIN are required' });
+  if (!email || !pin) {
+    return res.status(400).json({ success: false, error: 'Email and PIN are required' });
   }
 
-  if (name.trim().length > 255) {
+  if (name && name.trim().length > 255) {
     return res.status(400).json({ success: false, error: 'Name must be 255 characters or fewer' });
   }
 
@@ -23,7 +23,7 @@ router.post('/register', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid email address' });
   }
 
-  const patient = await patientAuthService.register(name.trim(), email.trim(), pin);
+  const patient = await patientAuthService.register((name || '').trim(), email.trim(), pin);
   return res.status(201).json({ success: true, data: patient });
 }));
 

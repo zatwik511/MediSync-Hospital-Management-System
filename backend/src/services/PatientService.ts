@@ -4,12 +4,30 @@ import { auditService } from './AuditService';
 import { notificationService } from './NotificationService';
 import { validateConditions, validateAllergies } from './patientValidation';
 
+// Postgres returns snake_case column names for the demographic columns we added.
+// Map them to the camelCase shape the Patient interface (and frontend) expect.
+function mapRow(row: any): Patient {
+  if (!row) return row;
+  const { date_of_birth, blood_type, emergency_contact_name,
+          emergency_contact_relationship, emergency_contact_phone,
+          deleted_at, failed_pin_attempts, locked_until, pin, total_count,
+          ...rest } = row;
+  return {
+    ...rest,
+    dateOfBirth:                 date_of_birth               ?? rest.dateOfBirth               ?? undefined,
+    bloodType:                   blood_type                  ?? rest.bloodType                  ?? undefined,
+    emergencyContactName:        emergency_contact_name       ?? rest.emergencyContactName       ?? undefined,
+    emergencyContactRelationship:emergency_contact_relationship ?? rest.emergencyContactRelationship ?? undefined,
+    emergencyContactPhone:       emergency_contact_phone      ?? rest.emergencyContactPhone      ?? undefined,
+  } as unknown as Patient;
+}
+
 export class PatientService {
 
   async createPatient(data: CreatePatientDTO, staffId = ''): Promise<Patient> {
     const {
       name, address, conditions,
-      dateOfBirth, gender, phone, bloodType, allergies,
+      dateOfBirth, gender, phone, bloodType, email, allergies,
       emergencyContactName, emergencyContactRelationship, emergencyContactPhone,
     } = data;
 
@@ -19,19 +37,19 @@ export class PatientService {
     const result = await pool.query(
       `INSERT INTO patients (
          name, address, conditions, diagnosis, "totalCost", "medicalHistory",
-         date_of_birth, gender, phone, blood_type, allergies,
+         date_of_birth, gender, phone, blood_type, email, allergies,
          emergency_contact_name, emergency_contact_relationship, emergency_contact_phone,
          "createdAt"
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW())
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
        RETURNING *`,
       [
         name, address, conditions || [], '', 0, [],
-        dateOfBirth || null, gender || null, phone || null, bloodType || null,
+        dateOfBirth || null, gender || null, phone || null, bloodType || null, email || null,
         JSON.stringify(allergies || []),
         emergencyContactName || null, emergencyContactRelationship || null, emergencyContactPhone || null,
       ]
     );
-    const patient = result.rows[0] as Patient;
+    const patient = mapRow(result.rows[0]);
 
     await auditService.logAction({
       staffId,
@@ -65,6 +83,7 @@ export class PatientService {
     if (data.gender !== undefined)       { updates.push(`gender = $${idx++}`);        values.push(data.gender || null); }
     if (data.phone !== undefined)        { updates.push(`phone = $${idx++}`);         values.push(data.phone || null); }
     if (data.bloodType !== undefined)    { updates.push(`blood_type = $${idx++}`);    values.push(data.bloodType || null); }
+    if (data.email !== undefined)        { updates.push(`email = $${idx++}`);         values.push(data.email || null); }
     if (data.allergies !== undefined)    { updates.push(`allergies = $${idx++}`);     values.push(JSON.stringify(data.allergies)); }
     if (data.emergencyContactName !== undefined)         { updates.push(`emergency_contact_name = $${idx++}`);         values.push(data.emergencyContactName || null); }
     if (data.emergencyContactRelationship !== undefined) { updates.push(`emergency_contact_relationship = $${idx++}`); values.push(data.emergencyContactRelationship || null); }
@@ -77,7 +96,9 @@ export class PatientService {
 
     let whereClause = `id = $${idx++}`;
     if (data.updatedAt) {
-      whereClause += ` AND "updatedAt" = $${idx++}`;
+      // Truncate to milliseconds on both sides — pg converts DB microseconds to
+      // JS Date (ms precision), so the round-tripped value would otherwise never match.
+      whereClause += ` AND date_trunc('milliseconds', "updatedAt") = date_trunc('milliseconds', $${idx++}::timestamptz)`;
       values.push(data.updatedAt);
     }
 
@@ -94,7 +115,7 @@ export class PatientService {
       }
       throw new Error('Patient not found');
     }
-    const patient = result.rows[0] as Patient;
+    const patient = mapRow(result.rows[0]);
 
     await auditService.logAction({
       staffId,
@@ -109,7 +130,7 @@ export class PatientService {
 
   async getPatient(patientID: string, staffId = ''): Promise<Patient | null> {
     const result = await pool.query(`SELECT * FROM patients WHERE id = $1 AND deleted_at IS NULL`, [patientID]);
-    const patient = result.rows[0] || null;
+    const patient = result.rows[0] ? mapRow(result.rows[0]) : null;
     if (patient && staffId) {
       await auditService.logAction({
         staffId,
@@ -132,7 +153,7 @@ export class PatientService {
         description: `Listed all patients (${result.rows.length} records)`,
       });
     }
-    return result.rows as Patient[];
+    return result.rows.map(mapRow);
   }
 
   async listPatientsPaginated(
@@ -153,7 +174,7 @@ export class PatientService {
     );
     const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
     const totalPages = Math.max(1, Math.ceil(total / limit));
-    const data = result.rows.map(({ total_count: _tc, ...row }) => row as Patient);
+    const data = result.rows.map(({ total_count: _tc, ...row }) => mapRow(row));
     if (staffId) {
       await auditService.logAction({
         staffId,
@@ -190,7 +211,7 @@ export class PatientService {
       [patientID]
     );
     if (!result.rows[0]) throw new Error('Patient not found or is not deleted');
-    const patient = result.rows[0] as Patient;
+    const patient = mapRow(result.rows[0]);
     await auditService.logAction({
       staffId,
       action: 'UPDATE',
@@ -205,7 +226,7 @@ export class PatientService {
     const result = await pool.query(
       `SELECT * FROM patients WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`
     );
-    return result.rows as Patient[];
+    return result.rows.map(mapRow);
   }
 
   async updateDiagnosis(patientID: string, diagnosis: string, staffId = ''): Promise<Patient> {
@@ -214,7 +235,7 @@ export class PatientService {
       [diagnosis, patientID]
     );
     if (!result.rows[0]) throw new Error('Patient not found');
-    const patient = result.rows[0] as Patient;
+    const patient = mapRow(result.rows[0]);
     await auditService.logAction({
       staffId,
       action: 'UPDATE',

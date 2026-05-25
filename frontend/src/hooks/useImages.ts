@@ -66,6 +66,17 @@ export function useClassifyImage() {
   });
 }
 
+export function useUpdateImageNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ imageId, note }: { imageId: string; note: string }) =>
+      imageApi.updateNote(imageId, note),
+    onSuccess: (updatedImage) => {
+      queryClient.invalidateQueries({ queryKey: IMAGES_QUERY_KEY(updatedImage.patientID) });
+    },
+  });
+}
+
 export function useDeleteImage() {
   const queryClient = useQueryClient();
 

@@ -1,6 +1,6 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Activity } from 'lucide-react';
+import { ChevronLeft, Activity, Info } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { LoadingSpinnerInline } from '../components/LoadingSpinner';
 
@@ -12,14 +12,16 @@ export function PatientLogin() {
   const [email, setEmail]     = useState('');
   const [pin, setPin]         = useState('');
   const [error, setError]     = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const switchMode = (next: Mode) => { setMode(next); setError(''); setPin(''); };
+  const switchMode = (next: Mode) => { setMode(next); setError(''); setSuccess(''); setPin(''); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       const endpoint = mode === 'login' ? '/patient-auth/login' : '/patient-auth/register';
@@ -45,7 +47,7 @@ export function PatientLogin() {
   return (
     <div className="min-h-screen flex">
 
-      {/* Left panel â€” branding */}
+      {/* Left panel — branding */}
       <div className="hidden lg:flex lg:w-5/12 bg-zinc-900 flex-col items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
         <div className="relative text-center">
@@ -65,7 +67,7 @@ export function PatientLogin() {
         </div>
       </div>
 
-      {/* Right panel â€” form */}
+      {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center bg-gray-50 px-6 py-12">
         <div className="w-full max-w-sm">
           <button
@@ -82,7 +84,7 @@ export function PatientLogin() {
           </div>
 
           {/* Mode toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-gray-200 mb-6 bg-white">
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 mb-5 bg-white">
             {(['login', 'register'] as Mode[]).map(m => (
               <button
                 key={m}
@@ -99,23 +101,40 @@ export function PatientLogin() {
             ))}
           </div>
 
+          {/* Contextual hint for register mode */}
+          {mode === 'register' && (
+            <div className="mb-5 flex gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-xs leading-relaxed">
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>New patient?</strong> Fill in all fields to create your account.<br />
+                <strong>Already registered by hospital staff?</strong> Enter the email your doctor has on file and choose a new PIN to activate your account.
+              </span>
+            </div>
+          )}
+
           {error && (
             <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-5 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+              {success}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Full Name <span className="text-gray-400 font-normal text-xs">(only required for new patients)</span>
+                </label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                   placeholder="Your full name"
-                  required
                 />
               </div>
             )}
@@ -132,7 +151,9 @@ export function PatientLogin() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">6-Digit PIN</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                {mode === 'register' ? 'Choose a 6-Digit PIN' : '6-Digit PIN'}
+              </label>
               <input
                 type="password"
                 value={pin}
@@ -150,9 +171,18 @@ export function PatientLogin() {
               disabled={loading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium rounded-lg py-2.5 flex justify-center items-center transition-colors text-sm mt-2"
             >
-              {loading ? <LoadingSpinnerInline /> : mode === 'login' ? 'Sign In' : 'Create Account'}
+              {loading ? <LoadingSpinnerInline /> : mode === 'login' ? 'Sign In' : 'Continue'}
             </button>
           </form>
+
+          {mode === 'login' && (
+            <p className="text-center text-xs text-gray-400 mt-6">
+              First time here?{' '}
+              <button onClick={() => switchMode('register')} className="text-emerald-600 hover:underline">
+                Set up your account
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

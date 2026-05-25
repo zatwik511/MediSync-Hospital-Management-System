@@ -3,6 +3,7 @@ import {
   X, ZoomIn, ZoomOut, RotateCw, Maximize2,
   ChevronLeft, ChevronRight, Download,
 } from 'lucide-react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export interface LightboxImage {
   src: string;
@@ -23,9 +24,11 @@ export function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxPr
   const [pan, setPan]           = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
 
-  const isPanning   = useRef(false);
-  const lastPos     = useRef({ x: 0, y: 0 });
+  const isPanning    = useRef(false);
+  const lastPos      = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const dialogRef    = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true);
 
   const image   = images[index];
   const canPrev = index > 0;
@@ -95,6 +98,10 @@ export function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxPr
 
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Image viewer — ${image.alt}`}
       className="fixed inset-0 z-50 flex flex-col"
       style={{ backgroundColor: 'rgba(0,0,0,0.93)' }}
     >
@@ -124,6 +131,7 @@ export function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxPr
             onClick={onClose}
             className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
             title="Close (Esc)"
+            aria-label="Close"
           >
             <X size={17} />
           </button>
@@ -191,6 +199,7 @@ export function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxPr
             onClick={prev}
             className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-black/60 border border-white/15 text-white hover:bg-black/80 hover:border-white/30 transition-all"
             title="Previous (←)"
+            aria-label="Previous image"
           >
             <ChevronLeft size={20} />
           </button>
@@ -202,6 +211,7 @@ export function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxPr
             onClick={next}
             className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-black/60 border border-white/15 text-white hover:bg-black/80 hover:border-white/30 transition-all"
             title="Next (→)"
+            aria-label="Next image"
           >
             <ChevronRight size={20} />
           </button>

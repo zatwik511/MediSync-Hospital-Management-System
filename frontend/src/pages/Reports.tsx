@@ -119,12 +119,12 @@ export function Reports() {
                             {history.financialHistory.map((task) => (
                               <div key={task.id} className="flex justify-between py-2 border-b border-gray-100">
                                 <span>{task.description}</span>
-                                <span className="font-medium">Â£{Number(task.cost).toFixed(2)}</span>
+                                <span className="font-medium">£{Number(task.cost).toFixed(2)}</span>
                               </div>
                             ))}
                             <div className="flex justify-between py-3 font-bold text-lg">
                               <span>Total Cost</span>
-                              <span className="text-primary-500">Â£{Number(history.totalCost).toFixed(2)}</span>
+                              <span className="text-primary-500">£{Number(history.totalCost).toFixed(2)}</span>
                             </div>
                           </div>
                         ) : (

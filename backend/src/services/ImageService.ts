@@ -13,6 +13,7 @@ interface MedicalImageRow {
   type: string;
   disease_classification: string | null;
   image_url: string;
+  notes: string | null;
 }
 
 export class ImageService {
@@ -26,6 +27,7 @@ export class ImageService {
       type: row.type as MedicalImage['type'],
       diseaseClassification: row.disease_classification ?? '',
       imageUrl: row.image_url,
+      notes: row.notes ?? undefined,
     };
   }
 
@@ -80,6 +82,23 @@ export class ImageService {
         description: `Classified image as ${imageType} / ${diseaseType}`,
       });
     }
+    return image;
+  }
+
+  async updateNote(imageID: string, note: string, staffId = ''): Promise<MedicalImage> {
+    const result = await pool.query(
+      `UPDATE medical_images SET notes = $1 WHERE id = $2 RETURNING *`,
+      [note || null, imageID]
+    );
+    if (!result.rows[0]) throw new Error('Image not found');
+    const image = this.transformToMedicalImage(result.rows[0]);
+    await auditService.logAction({
+      staffId,
+      action: 'UPDATE',
+      entityType: 'image',
+      entityId: imageID,
+      description: `Updated clinical note for image ${imageID}`,
+    });
     return image;
   }
 
